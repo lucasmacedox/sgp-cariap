@@ -1,15 +1,7 @@
-"""Sessão HTTP com cookies, usando apenas a biblioteca padrão.
+"""Sessão HTTP com cookies e conexão reaproveitada (keep-alive).
 
-Evitar dependências externas mantém o assistente instalável em qualquer
-máquina com Python e simplifica o empacotamento em executável.
-
-A sessão mantém uma única conexão aberta com o SGP (keep-alive): cada página
-do SGP já custa perto de um segundo para ser gerada, e abrir uma conexão TLS
-nova a cada requisição somaria mais um décimo de segundo a cada uma delas.
-
-Leituras (GET) que falham por oscilação de rede ou por resposta 502/503/504
-são repetidas algumas vezes, com espera crescente. Envios (POST) nunca são
-repetidos automaticamente, para não gravar o mesmo cadastro duas vezes.
+GETs que falham por rede ou 502/503/504 são repetidos com espera crescente;
+POSTs nunca são repetidos, para não gravar o mesmo cadastro duas vezes.
 """
 
 from __future__ import annotations
@@ -20,8 +12,8 @@ import ssl
 import time
 import urllib.parse
 from dataclasses import dataclass, field
-from email.message import Message
 from collections.abc import Callable, Iterable
+from email.message import Message
 
 from ..erros import ErroCertificado, ErroConexao
 
@@ -38,7 +30,6 @@ class Resposta:
     texto: str
     cabecalhos: Message
     conteudo: bytes = b""
-    """Corpo original, para arquivos (exportações em Excel)."""
 
     @property
     def redirecionamento(self) -> str | None:
@@ -49,17 +40,11 @@ class Resposta:
 
 @dataclass(frozen=True)
 class PoliticaRepeticao:
-    """Quantas vezes repetir uma leitura que falhou e quanto esperar antes de cada uma."""
-
     esperas: tuple[float, ...] = (1.0, 3.0)
     dormir: Callable[[float], None] = field(default=time.sleep, compare=False)
 
 
-SEM_REPETICAO = PoliticaRepeticao(esperas=())
-
-
 def normalizar_url(url: str) -> str:
-    """Remove espaços e barra final e assume HTTPS quando falta o esquema."""
     url = url.strip().rstrip("/")
     if url and not url.startswith(("http://", "https://")):
         url = "https://" + url
@@ -67,11 +52,7 @@ def normalizar_url(url: str) -> str:
 
 
 def criar_contexto_ssl(verificar: bool) -> ssl.SSLContext:
-    """Contexto TLS; usa as autoridades do ``certifi`` quando disponível.
-
-    No executável empacotado e no Python oficial do macOS, o sistema não fornece
-    as autoridades certificadoras ao ``ssl``; o ``certifi`` cobre esses casos.
-    """
+    # o executável e o Python oficial do macOS não enxergam as CAs do sistema
     if not verificar:
         contexto = ssl.create_default_context()
         contexto.check_hostname = False
@@ -85,8 +66,6 @@ def criar_contexto_ssl(verificar: bool) -> ssl.SSLContext:
 
 
 class Cookies:
-    """Cookies de um único servidor (o SGP usa ``csrftoken`` e ``sessionid``)."""
-
     def __init__(self):
         self._valores: dict[str, str] = {}
 
@@ -112,8 +91,6 @@ class Cookies:
 
 
 class SessaoHTTP:
-    """Requisições a um único servidor, com cookies e conexão reaproveitada."""
-
     def __init__(self, url_base: str, *, timeout: float = 60, verificar_ssl: bool = True,
                  repeticao: PoliticaRepeticao | None = None):
         self.url_base = normalizar_url(url_base)
@@ -122,20 +99,17 @@ class SessaoHTTP:
             raise ErroConexao(f"endereço inválido: {url_base}")
         self._https = partes.scheme == "https"
         self._host, self._porta = partes.hostname, partes.port
-        self._prefixo = partes.path  # SGP publicado num subcaminho
+        self._prefixo = partes.path
         self.timeout = timeout
         self._contexto = criar_contexto_ssl(verificar_ssl) if self._https else None
         self._repeticao = repeticao or PoliticaRepeticao()
         self._conexao: http.client.HTTPConnection | None = None
         self._cookies = Cookies()
-        self.requisicoes = 0
-        """Total de requisições feitas (para medir o custo de cada operação)."""
 
     def cookie(self, nome: str) -> str | None:
         return self._cookies.get(nome)
 
     def get(self, caminho: str, *, timeout: float | None = None) -> Resposta:
-        """``timeout`` vale só para esta leitura (exportações grandes demoram mais)."""
         if timeout is None:
             return self._seguir("GET", caminho, None, seguir=True)
         anterior = self.timeout
@@ -146,16 +120,12 @@ class SessaoHTTP:
             self._mudar_timeout(anterior)
 
     def post(self, caminho: str, dados: Iterable[tuple[str, str]], *, seguir: bool = False) -> Resposta:
-        """Envia um formulário. Por padrão não segue o redirecionamento, que no
-        Django indica sucesso e é tratado por quem chamou."""
         return self._seguir("POST", caminho, list(dados), seguir=seguir)
 
     def fechar(self) -> None:
         if self._conexao is not None:
             self._conexao.close()
             self._conexao = None
-
-    # --- internos ---------------------------------------------------------------------
 
     def _mudar_timeout(self, segundos: float) -> None:
         self.timeout = segundos
@@ -170,12 +140,10 @@ class SessaoHTTP:
             destino = resposta.redirecionamento
             if not seguir or destino is None:
                 return resposta
-            # depois de um POST, o navegador segue o redirecionamento com GET
             resposta = self._requisitar("GET", self._caminho_de(destino), None)
         raise ErroConexao(f"{self.url_base}{caminho} redirecionou vezes demais")
 
     def _caminho_de(self, destino: str) -> str:
-        """Caminho relativo à URL base a partir de um ``Location`` absoluto ou relativo."""
         partes = urllib.parse.urlsplit(urllib.parse.urljoin(self.url_base + "/", destino))
         caminho = partes.path + (f"?{partes.query}" if partes.query else "")
         if self._prefixo and caminho.startswith(self._prefixo):
@@ -210,17 +178,14 @@ class SessaoHTTP:
             cabecalhos["Cookie"] = self._cookies.cabecalho()
         if corpo is not None:
             cabecalhos["Content-Type"] = "application/x-www-form-urlencoded"
-        # Uma conexão parada pode ter sido fechada pelo servidor sem aviso. Na leitura,
-        # vale repetir uma vez com conexão nova. No envio não dá para saber se o SGP
-        # gravou antes de a conexão cair; por isso o envio sempre abre uma conexão
-        # nova e nunca é repetido (repetir poderia gravar o serviço duas vezes).
+        # A conexão parada pode ter sido fechada pelo servidor. GET tenta de novo com
+        # conexão nova; POST já parte de uma conexão nova e nunca é repetido.
         if metodo != "GET":
             self.fechar()
         for tentativa in (1, 2):
             reaproveitada = self._conexao is not None
             conexao = self._abrir()
             try:
-                self.requisicoes += 1
                 conexao.request(metodo, self._prefixo + caminho, body=corpo, headers=cabecalhos)
                 r = conexao.getresponse()
                 conteudo = r.read()

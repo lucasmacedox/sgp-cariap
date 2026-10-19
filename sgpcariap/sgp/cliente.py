@@ -16,26 +16,18 @@ _CSRF = re.compile(r"""name=['"]csrfmiddlewaretoken['"]\s+value=['"]([^'"]+)""")
 
 
 class _SessaoExpirada(Exception):
-    """Interno: o SGP mandou para a tela de login no meio do trabalho."""
+    pass
 
 
 class ClienteSGP:
-    """Lê páginas e envia formulários do SGP em nome de um usuário.
-
-    Use ``ClienteSGP.conectar`` para obter uma instância já autenticada.
-
-    Se a sessão expirar durante uma execução longa, o cliente entra de novo uma
-    vez e repete a operação. A senha fica só na memória deste objeto, para esse
-    fim; nunca é gravada.
-    """
+    """Sessão autenticada. Se expirar, entra de novo uma vez com a senha guardada em memória."""
 
     def __init__(self, sessao: SessaoHTTP, usuario: str, senha: str = ""):
         self._sessao = sessao
         self.usuario = usuario
         self._senha = senha
-        self._trava = threading.Lock()  # uma requisição por vez na mesma conexão
+        self._trava = threading.Lock()
         self.versao_sgp = ""
-        """Versão mostrada no rodapé do SGP ("1.0.251"); vazia se a página não mostrar."""
 
     @classmethod
     def conectar(cls, url: str, usuario: str, senha: str, *,
@@ -47,10 +39,6 @@ class ClienteSGP:
     @property
     def url(self) -> str:
         return self._sessao.url_base
-
-    @property
-    def requisicoes(self) -> int:
-        return getattr(self._sessao, "requisicoes", 0)
 
     def _entrar(self) -> None:
         pagina = self._sessao.get(_ROTA_LOGIN)
@@ -72,7 +60,6 @@ class ClienteSGP:
         return achado.group(1) if achado else self._sessao.cookie("csrftoken")
 
     def _com_sessao(self, operacao):
-        """Executa ``operacao``; se a sessão tiver expirado, entra de novo e repete uma vez."""
         with self._trava:
             try:
                 return operacao()
@@ -87,16 +74,13 @@ class ClienteSGP:
                                        "conecte de novo") from None
 
     def pagina(self, caminho: str) -> str:
-        """HTML da página; falha com mensagem clara em sessão expirada ou sem acesso."""
         return self._com_sessao(lambda: self._ler(caminho).texto)
 
     def pagina_e_endereco(self, caminho: str) -> tuple[str, str]:
-        """Como ``pagina``, devolvendo também o endereço final (depois dos redirecionamentos)."""
         resposta = self._com_sessao(lambda: self._ler(caminho))
         return resposta.texto, resposta.url
 
     def arquivo(self, caminho: str, *, timeout: float | None = None) -> Resposta:
-        """Arquivo gerado pelo SGP (exportação); o conteúdo vem em ``Resposta.conteudo``."""
         return self._com_sessao(lambda: self._ler(caminho, timeout))
 
     def _ler(self, caminho: str, timeout: float | None = None) -> Resposta:
@@ -112,19 +96,13 @@ class ClienteSGP:
     def enviar(self, caminho: str, alteracoes: Mapping[str, ValorCampo],
                extras: Iterable[tuple[str, str]] = (),
                formulario: Formulario | None = None) -> str:
-        """Envia o formulário de ``caminho`` e devolve o endereço de destino.
-
-        ``formulario`` permite reaproveitar uma leitura recente da mesma página;
-        sem ele, a página é lida de novo para obter valores atualizados. Se a
-        sessão tiver expirado, o SGP não processou o envio (mandou para o login
-        antes); o formulário é lido de novo, com token novo, e reenviado.
-        """
+        """Envia o formulário de ``caminho`` e devolve o destino do redirecionamento."""
         reaproveitar = formulario
 
         def enviar_uma_vez() -> str:
             nonlocal reaproveitar
             atual = reaproveitar or Formulario.de_html(self._ler(caminho).texto)
-            reaproveitar = None  # se repetir (sessão expirada), lê de novo com token novo
+            reaproveitar = None
             dados = atual.preencher(alteracoes, extras)
             if not any(nome == "csrfmiddlewaretoken" for nome, _ in dados):
                 token = self._token_csrf()

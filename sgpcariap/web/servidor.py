@@ -1,9 +1,4 @@
-"""Servidor HTTP local: entrega a interface e encaminha ``/api/*`` para a API.
-
-Escuta apenas em 127.0.0.1 e recusa requisições com cabeçalho ``Host`` ou
-``Origin`` de outro endereço, o que impede que páginas abertas no navegador
-usem o assistente sem o usuário saber.
-"""
+"""Servidor HTTP local. Só escuta em 127.0.0.1 e recusa ``Host``/``Origin`` de fora (DNS rebinding, CSRF)."""
 
 from __future__ import annotations
 
@@ -20,11 +15,10 @@ from .api import ApiAssistente, RotaInexistente
 ENDERECO = "127.0.0.1"
 _HOSTS_LOCAIS = {"127.0.0.1", "localhost"}
 _TENTATIVAS_DE_PORTA = 20
-_MAX_CORPO = 5 * 1024 * 1024  # a maior requisição é a configuração do provedor, de poucos KB
+_MAX_CORPO = 5 * 1024 * 1024
 
 log = logging.getLogger(__name__)
 
-# Só recursos do próprio assistente; a página não pode ser aberta dentro de outro site.
 _POLITICA_CONTEUDO = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; "
                       "img-src 'self' data:; font-src 'self'; connect-src 'self'; "
                       "frame-ancestors 'none'; base-uri 'none'; form-action 'none'")
@@ -50,8 +44,6 @@ class _Manipulador(BaseHTTPRequestHandler):
         if not self.path.startswith("/api/job"):
             log.debug("%s %s", self.address_string(), formato % args)
 
-    # --- entrada ------------------------------------------------------------------
-
     def do_GET(self):
         if not self._origem_local():
             return
@@ -72,8 +64,6 @@ class _Manipulador(BaseHTTPRequestHandler):
             return self._json(400, {"erro": "JSON inválido"})
         self._api("POST", dados if isinstance(dados, dict) else {})
 
-    # --- processamento ----------------------------------------------------------------
-
     def _origem_local(self) -> bool:
         host = (self.headers.get("Host") or "").rsplit(":", 1)[0]
         origem = self.headers.get("Origin")
@@ -90,7 +80,7 @@ class _Manipulador(BaseHTTPRequestHandler):
             self._json(404, {"erro": str(erro)})
         except ErroAssistente as erro:
             self._json(400, {"erro": str(erro)})
-        except Exception as erro:  # noqa: BLE001 - a interface mostra a mensagem
+        except Exception as erro:  # noqa: BLE001
             log.exception("falha em %s %s", metodo, caminho)
             self._json(500, {"erro": f"falha interna ({type(erro).__name__}: {erro})"})
 
@@ -122,8 +112,6 @@ class _Manipulador(BaseHTTPRequestHandler):
 
 
 class ServidorAssistente:
-    """Sobe o servidor na primeira porta livre a partir de ``porta``."""
-
     def __init__(self, api: ApiAssistente, estaticos: Path, porta: int = 8765):
         self._servidor = self._abrir(api, estaticos, porta)
 

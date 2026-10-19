@@ -1,5 +1,3 @@
-// Montagem da aplicação: cria o estado compartilhado e as telas.
-
 import { ClienteApi } from './api.js';
 import { Combobox } from './componentes/combobox.js';
 import { Dicas } from './componentes/dica.js';
@@ -35,7 +33,7 @@ async function iniciar() {
   tour.abrirNaPrimeiraVisita();
 }
 
-/** Reaproveita a conexão do servidor só se ela for do SGP do provedor atual. */
+// só reaproveita a conexão se for do SGP do provedor atual
 async function retomarConexao(estado, api, menu, conexao) {
   try {
     const situacao = await api.status();
@@ -48,7 +46,7 @@ async function retomarConexao(estado, api, menu, conexao) {
       await api.desconectar();
     }
   } catch {
-    // servidor fora do ar: a tela de conexão mostra o erro ao tentar conectar
+    // servidor fora do ar: a tela de conexão mostra o erro
   }
 }
 

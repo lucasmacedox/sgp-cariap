@@ -79,9 +79,6 @@ class TestResolverOpcao(unittest.TestCase):
         with self.assertRaises(OpcaoNaoEncontrada):
             self.contratos.resolver("Satélite")
 
-    def test_vazio_e_opcional(self):
-        self.assertIsNone(self.contratos.resolver_se_preenchido(""))
-
     def test_nome_repetido_traz_todas_as_opcoes(self):
         pops = opcoes("Natal-RN", "Mossoró", " Natal-RN ", "Natal-RN Sul", campo="pops")
         self.assertEqual(pops.resolver_todos("natal-rn"), ["1", "3"])

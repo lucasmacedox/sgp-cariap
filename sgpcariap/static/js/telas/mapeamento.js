@@ -1,23 +1,14 @@
-// Etapa 2: vínculo entre planos de internet e planos de TV (serviços do Cariap).
-//
-// Os planos vêm do SGP (somente leitura). O usuário seleciona planos de internet
-// e marca os planos de TV que os clientes deles devem receber. Planos com os
-// mesmos serviços formam um grupo automaticamente (ver dominio.reagrupar).
-
 import { problemasDoMapeamento, reagrupar, servicosPorPlano } from '../dominio.js';
 import { Eventos } from '../estado.js';
-import { $, esc, icone, info, moeda, plural } from '../util.js';
+import { $, alternar, esc, icone, info, moeda, plural } from '../util.js';
 import { Tela } from './base.js';
 
 const ehCariap = (servico) => /cariap/i.test(servico.gateway || '');
 
-/**
- * Nomes que aparecem em mais de um plano. O SGP identifica o plano pelo nome no
- * relatório de clientes e no formulário do serviço, então esses não podem ser vinculados.
- */
+// o SGP identifica o plano pelo nome; nomes repetidos não podem ser vinculados
 function nomesRepetidos(planos) {
   const contagem = new Map();
-  for (const p of planos) contagem.set(p.nome.toLowerCase(), (contagem.get(p.nome.toLowerCase()) ?? 0) + 1);
+  for (const { nome } of planos) contagem.set(nome.toLowerCase(), (contagem.get(nome.toLowerCase()) ?? 0) + 1);
   return new Set([...contagem].filter(([, n]) => n > 1).map(([nome]) => nome));
 }
 const AVISO_REPETIDO = `<div class="nota-aviso">Nome repetido ${info('O SGP identifica o plano pelo nome. Renomeie no SGP para poder vincular.')}</div>`;
@@ -72,7 +63,6 @@ export class TelaMapeamento extends Tela {
     this.#renderizarTudo();
   }
 
-  /** Com algum gateway Cariap no SGP, a lista de TV já começa mostrando só eles. */
   #ajustarFiltroCariap() {
     $('#mp-so-cariap').checked = this.servicosSgp.some(ehCariap);
   }
@@ -82,8 +72,6 @@ export class TelaMapeamento extends Tela {
     this.#renderizarServicos();
     this.#renderizarGrupos();
   }
-
-  // --- planos de internet ------------------------------------------------------------
 
   #visiveis() {
     const termo = $('#mp-filtro').value.trim().toLowerCase();
@@ -132,7 +120,7 @@ export class TelaMapeamento extends Tela {
     const caixa = $('input', linha);
     if (caixa.disabled) return;
     if (evento.target !== caixa) caixa.checked = !caixa.checked;
-    if (caixa.checked) this.selecionados.add(linha.dataset.rotulo); else this.selecionados.delete(linha.dataset.rotulo);
+    alternar(this.selecionados, linha.dataset.rotulo, caixa.checked);
     linha.classList.toggle('marcado', caixa.checked);
     this.#renderizarSelecao();
     this.#renderizarServicos();
@@ -141,13 +129,11 @@ export class TelaMapeamento extends Tela {
   #selecionarVisiveis(marcar) {
     const repetidos = nomesRepetidos(this.planosSgp);
     for (const plano of this.#visiveis().filter((p) => !repetidos.has(p.nome.toLowerCase()))) {
-      if (marcar) this.selecionados.add(plano.rotulo); else this.selecionados.delete(plano.rotulo);
+      alternar(this.selecionados, plano.rotulo, marcar);
     }
     this.#renderizarPlanos();
     this.#renderizarServicos();
   }
-
-  // --- planos de TV (serviços) -------------------------------------------------------
 
   #renderizarServicos() {
     const termo = $('#mp-filtro-servicos').value.trim().toLowerCase();
@@ -185,10 +171,10 @@ export class TelaMapeamento extends Tela {
       : servicos.filter((s) => s !== servico)));
   }
 
-  /** Aplica uma mudança na lista de serviços de cada plano selecionado e reagrupa. */
-  #aplicar(transformar) {
+  // aplica a transformação aos serviços de cada plano e refaz os grupos
+  #aplicar(transformar, planos = this.selecionados) {
     const mapa = servicosPorPlano(this.config);
-    for (const plano of this.selecionados) mapa.set(plano, transformar(mapa.get(plano) ?? []));
+    for (const plano of planos) mapa.set(plano, transformar(mapa.get(plano) ?? []));
     reagrupar(this.config, mapa);
     this.#salvar();
   }
@@ -198,8 +184,6 @@ export class TelaMapeamento extends Tela {
     campo.value = '';
     if (grupo) this.#aplicar(() => [...grupo.servicos]);
   }
-
-  // --- grupos -----------------------------------------------------------------------
 
   #renderizarGrupos() {
     const porRotulo = new Map(this.planosSgp.map((p) => [p.rotulo, p]));
@@ -242,51 +226,36 @@ export class TelaMapeamento extends Tela {
     this.#renderizarSelecao();
   }
 
-  /** Mudança nos serviços de um grupo vale para todos os planos dele. */
-  #alterarGrupo(indice, transformar) {
-    const grupo = this.config.grupos[indice];
-    const mapa = servicosPorPlano(this.config);
-    for (const plano of grupo.planos) mapa.set(plano, transformar(mapa.get(plano) ?? []));
-    reagrupar(this.config, mapa);
-    this.#salvar();
-  }
-
   #adicionarServicoAoGrupo(campo) {
     const indice = campo.dataset.servicoAdd;
     if (indice === undefined) return;
     const servico = campo.value.trim();
     if (!servico || !this.servicosSgp.some((s) => s.nome === servico)) return;
     campo.value = ''; // sem valor pendente, o redesenho não dispara outro "change"
-    this.#alterarGrupo(Number(indice), (servicos) => [...new Set([...servicos, servico])]);
+    this.#aplicar((servicos) => [...new Set([...servicos, servico])], this.config.grupos[indice].planos);
   }
 
   #acaoNoGrupo(evento) {
     const botao = evento.target.closest('button[data-acao]');
     if (!botao) return;
-    const indice = Number(botao.dataset.grupo);
-    const grupo = this.config.grupos[indice];
+    const grupo = this.config.grupos[botao.dataset.grupo];
+    const j = Number(botao.dataset.j);
     switch (botao.dataset.acao) {
       case 'tirar-servico': {
-        const servico = grupo.servicos[Number(botao.dataset.j)];
-        this.#alterarGrupo(indice, (servicos) => servicos.filter((s) => s !== servico));
+        const servico = grupo.servicos[j];
+        this.#aplicar((servicos) => servicos.filter((s) => s !== servico), grupo.planos);
         break;
       }
-      case 'tirar-plano': {
-        const mapa = servicosPorPlano(this.config);
-        mapa.set(grupo.planos[Number(botao.dataset.j)], []);
-        reagrupar(this.config, mapa);
-        this.#salvar();
+      case 'tirar-plano':
+        this.#aplicar(() => [], [grupo.planos[j]]);
         break;
-      }
       case 'selecionar':
         this.selecionados = new Set(grupo.planos);
         this.#renderizarTudo();
         break;
       case 'excluir':
         if (!confirm(`Desfazer “${grupo.nome}”? ${plural(grupo.planos.length, 'plano fica', 'planos ficam')} sem serviços.`)) return;
-        this.#alterarGrupo(indice, () => []);
-        break;
-      default:
+        this.#aplicar(() => [], grupo.planos);
         break;
     }
   }

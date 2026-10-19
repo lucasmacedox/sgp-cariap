@@ -1,4 +1,4 @@
-"""Casos de uso do assistente para um SGP conectado (fachada da camada de aplicação)."""
+"""Operações do assistente sobre um SGP conectado."""
 
 from __future__ import annotations
 
@@ -10,8 +10,6 @@ from .lote import ControleExecucao, ExecutorLote, ItemLote, MontadorLote, Situac
 
 
 class AssistenteCadastro:
-    """Conexão com um SGP: leitura dos planos e aplicação dos serviços nos clientes."""
-
     def __init__(self, catalogo: CatalogoSGP):
         self.catalogo = catalogo
 
@@ -40,7 +38,6 @@ class AssistenteCadastro:
         return self.catalogo.telas.relatorio_servicos.opcoes_filtro()
 
     def montar_lote(self, config: Configuracao, selecionados: set[str] | None = None) -> list[ItemLote]:
-        """Contratos dos planos mapeados; com ``selecionados``, os demais pendentes ficam de fora."""
         itens = MontadorLote(self.catalogo, config).montar()
         if selecionados is not None:
             for item in itens:

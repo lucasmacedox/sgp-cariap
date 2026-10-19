@@ -1,11 +1,8 @@
-// Combobox: lista de opções que abre ao focar, filtra ao digitar e funciona pelo teclado.
-//
-// Aproveita os <datalist> já existentes como fonte de dados: qualquer <input list="...">
-// da página (inclusive os criados depois, em tabelas e cartões) vira combobox. Quando a
-// lista tem opções lidas do SGP e o valor digitado não corresponde a nenhuma, o campo é
-// marcado no próprio lugar, antes de chegar à prévia.
+import { esc } from '../util.js';
 
 const LIMITE_VISIVEL = 80;
+const termoDe = (campo) => campo.value.trim().toLowerCase();
+const contem = (opcoes, termo) => opcoes.some((o) => o.valor.toLowerCase() === termo);
 
 export class Combobox {
   constructor() {
@@ -49,8 +46,6 @@ export class Combobox {
     document.addEventListener('scroll', () => this.#posicionar(), true);
   }
 
-  // --- conversão e validação ---------------------------------------------------
-
   #converter(campo) {
     campo.dataset.lista = campo.getAttribute('list');
     campo.removeAttribute('list');
@@ -85,15 +80,14 @@ export class Combobox {
   }
 
   #corresponde(campo) {
-    const valor = campo.value.trim().toLowerCase();
-    return Boolean(valor) && this.#opcoesDe(campo).some((o) => o.valor.toLowerCase() === valor);
+    const termo = termoDe(campo);
+    return Boolean(termo) && contem(this.#opcoesDe(campo), termo);
   }
 
-  /** Marca o campo quando há opções carregadas e o valor não é nenhuma delas. */
   #validar(campo) {
-    const valor = campo.value.trim().toLowerCase();
+    const termo = termoDe(campo);
     const opcoes = this.#opcoesDe(campo);
-    const fora = Boolean(valor) && opcoes.length > 0 && !opcoes.some((o) => o.valor.toLowerCase() === valor);
+    const fora = Boolean(termo) && opcoes.length > 0 && !contem(opcoes, termo);
     campo.classList.toggle('fora-da-lista', fora);
     if (fora) {
       campo.setAttribute('aria-invalid', 'true');
@@ -103,8 +97,6 @@ export class Combobox {
       campo.removeAttribute('title');
     }
   }
-
-  // --- lista ------------------------------------------------------------------------
 
   abrir(campo) {
     this.campo = campo;
@@ -121,11 +113,10 @@ export class Combobox {
   #desenhar() {
     const campo = this.campo;
     if (!campo) return;
-    const termo = campo.value.trim().toLowerCase();
+    const termo = termoDe(campo);
     const todas = this.#opcoesDe(campo);
-    const exata = todas.some((o) => o.valor.toLowerCase() === termo);
     // com um valor já escolhido, mostra tudo para facilitar a troca
-    this.opcoes = (exata || !termo ? todas : todas.filter((o) => `${o.valor} ${o.dica}`.toLowerCase().includes(termo)))
+    this.opcoes = (!termo || contem(todas, termo) ? todas : todas.filter((o) => `${o.valor} ${o.dica}`.toLowerCase().includes(termo)))
       .slice(0, LIMITE_VISIVEL);
     if (!todas.length) {
       this.painel.innerHTML = '<p class="combo-vazio">Sem opções ainda. Conecte ao SGP para carregar a lista.</p>';
@@ -133,8 +124,8 @@ export class Combobox {
       this.painel.innerHTML = '<p class="combo-vazio">Nenhuma opção com esse texto.</p>';
     } else {
       this.painel.innerHTML = this.opcoes.map((o, i) => `<div class="combo-item${i === this.ativa ? ' ativo' : ''}${o.valor.toLowerCase() === termo ? ' escolhido' : ''}"
-        role="option" data-valor="${o.valor.replace(/"/g, '&quot;')}">
-        <span>${escapar(o.valor)}</span>${o.dica && o.dica !== o.valor ? `<small>${escapar(o.dica)}</small>` : ''}</div>`).join('');
+        role="option" data-valor="${esc(o.valor)}">
+        <span>${esc(o.valor)}</span>${o.dica && o.dica !== o.valor ? `<small>${esc(o.dica)}</small>` : ''}</div>`).join('');
     }
     this.painel.hidden = false;
     campo.setAttribute('aria-expanded', 'true');
@@ -183,5 +174,3 @@ export class Combobox {
     this.painel.hidden = true;
   }
 }
-
-const escapar = (texto) => String(texto).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));

@@ -1,4 +1,4 @@
-"""Execuções em segundo plano, acompanhadas pela interface via consulta periódica."""
+"""Execuções em segundo plano."""
 
 from __future__ import annotations
 
@@ -6,17 +6,15 @@ import json
 import logging
 import os
 import threading
-import time
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from collections.abc import Callable
 
 from ..cadastro import ControleExecucao, NivelLog, ResumoExecucao
 from ..erros import ErroEstado
-from .privacidade import anonimizar
 
 log = logging.getLogger(__name__)
 
@@ -37,12 +35,7 @@ def _agora() -> str:
 
 @dataclass
 class Tarefa:
-    """Estado de uma execução. Implementa ``ObservadorExecucao``.
-
-    É escrita pela thread de execução e lida pelas requisições da interface;
-    o lock garante leituras consistentes. ``diario`` recebe cada mensagem e cada
-    contrato terminado, para o registro em disco acompanhar a execução.
-    """
+    """Estado de uma execução (``ObservadorExecucao``), lido pela interface enquanto roda."""
 
     contexto: dict
     passos: list[dict]
@@ -57,7 +50,6 @@ class Tarefa:
     _trava: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def passo_atualizado(self, indice: int, passo) -> None:
-        """``passo`` é qualquer objeto com ``para_dict`` (passo de cadastro ou item de lote)."""
         dados = passo.para_dict()
         with self._trava:
             self.passos[indice] = dados
@@ -98,28 +90,15 @@ class Tarefa:
 
 
 class RegistroExecucoes:
-    """Registro de cada execução em disco: o que foi pedido e o que aconteceu.
+    """Grava cada execução em disco: ``.json`` com o estado completo e ``.diario.jsonl``
+    com uma linha por contrato terminado, para saber o que foi feito se o processo cair."""
 
-    Por execução, dois arquivos com o mesmo nome:
-
-    - ``.json``: o retrato completo; gravado no início (situação "rodando") e no fim;
-    - ``.diario.jsonl``: uma linha por contrato terminado e por mensagem, gravada na
-      hora. Se o assistente for fechado no meio, é ele que mostra o que já foi feito.
-
-    Os arquivos só podem ser lidos pelo usuário que roda o assistente, os dados de
-    contato do cliente vão mascarados (ver ``privacidade``) e registros mais antigos
-    que ``retencao_dias`` são apagados ao iniciar uma nova execução (0 guarda todos).
-    """
-
-    def __init__(self, diretorio: Path, retencao_dias: int = 0):
+    def __init__(self, diretorio: Path):
         self.diretorio = diretorio
-        self.retencao_dias = retencao_dias
         self._trava = threading.Lock()
 
     def abrir(self, tarefa: Tarefa, configuracao: dict) -> Path:
-        """Cria o registro da execução e liga o diário à tarefa."""
-        self._preparar_pasta()
-        self.limpar_antigos()
+        self.diretorio.mkdir(parents=True, exist_ok=True)
         provedor = "".join(c if c.isalnum() else "-" for c in configuracao.get("provedor") or "sgp")[:40]
         arquivo = self.diretorio / f"{datetime.now():%Y-%m-%d_%H%M%S}_{provedor}_{tarefa.id}.json"
         tarefa.arquivo = str(arquivo)
@@ -130,48 +109,22 @@ class RegistroExecucoes:
 
     def salvar(self, tarefa: Tarefa, configuracao: dict) -> Path:
         arquivo = Path(tarefa.arquivo) if tarefa.arquivo else self.abrir(tarefa, configuracao)
-        conteudo = anonimizar({**tarefa.para_dict(), "config": configuracao})
         temporario = arquivo.with_suffix(".json.tmp")
-        _gravar(temporario, json.dumps(conteudo, ensure_ascii=False, indent=2), "w")
-        os.replace(temporario, arquivo)  # quem lê nunca vê o arquivo pela metade
+        temporario.write_text(json.dumps({**tarefa.para_dict(), "config": configuracao}, ensure_ascii=False, indent=2),
+                              encoding="utf-8")
+        os.replace(temporario, arquivo)
         return arquivo
 
-    def limpar_antigos(self, agora: float | None = None) -> int:
-        if not self.retencao_dias or not self.diretorio.is_dir():
-            return 0
-        limite = (agora or time.time()) - self.retencao_dias * 86400
-        apagados = 0
-        for arquivo in self.diretorio.iterdir():
-            if arquivo.suffix in (".json", ".jsonl") and arquivo.is_file() and arquivo.stat().st_mtime < limite:
-                arquivo.unlink(missing_ok=True)
-                apagados += 1
-        return apagados
-
-    def _preparar_pasta(self) -> None:
-        self.diretorio.mkdir(parents=True, exist_ok=True, mode=0o700)
-        try:
-            os.chmod(self.diretorio, 0o700)
-        except OSError:  # pasta de outro usuário ou sistema de arquivos sem permissões
-            pass
-
     def _anexar(self, diario: Path, evento: dict) -> None:
-        linha = json.dumps(anonimizar(evento), ensure_ascii=False) + "\n"
         try:
-            with self._trava:
-                _gravar(diario, linha, "a")
-        except OSError as erro:  # o registro não pode derrubar a execução
+            with self._trava, diario.open("a", encoding="utf-8") as arquivo:
+                arquivo.write(json.dumps(evento, ensure_ascii=False) + "\n")
+        except OSError as erro:
             log.warning("diário não gravado em %s: %s", diario, erro)
 
 
-def _gravar(caminho: Path, texto: str, modo: str) -> None:
-    """Grava ``texto`` com permissão só para o dono do arquivo (0600)."""
-    flags = os.O_WRONLY | os.O_CREAT | (os.O_APPEND if modo == "a" else os.O_TRUNC)
-    with open(os.open(caminho, flags, 0o600), modo, encoding="utf-8") as arquivo:
-        arquivo.write(texto)
-
-
 class GerenciadorTarefas:
-    """Cria e acompanha tarefas; permite apenas uma execução por vez."""
+    """Uma execução por vez."""
 
     def __init__(self, registro: RegistroExecucoes):
         self._registro = registro
@@ -191,12 +144,6 @@ class GerenciadorTarefas:
 
     def iniciar(self, tarefa: Tarefa, trabalho: Callable[[Tarefa], ResumoExecucao],
                 configuracao: dict) -> Tarefa:
-        """Roda ``trabalho`` numa thread e salva o registro ao terminar.
-
-        A verificação "já há execução" e o cadastro da nova tarefa acontecem sob a
-        mesma trava: dois pedidos simultâneos (duplo clique, duas abas) não geram
-        duas execuções sobre os mesmos contratos.
-        """
         with self._trava:
             if self._rodando():
                 raise ErroEstado("já há uma execução em andamento")
@@ -218,7 +165,7 @@ class GerenciadorTarefas:
     def _rodar(self, tarefa: Tarefa, trabalho: Callable[[Tarefa], ResumoExecucao], configuracao: dict) -> None:
         try:
             tarefa.concluir(trabalho(tarefa))
-        except Exception as erro:  # noqa: BLE001 - a falha vai para o log da tarefa
+        except Exception as erro:  # noqa: BLE001
             log.exception("execução %s interrompida", tarefa.id)
             tarefa.falhar(erro)
         try:

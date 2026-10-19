@@ -1,11 +1,9 @@
-"""Casos de uso: ler os planos do SGP e aplicar os serviços nos contratos dos clientes."""
+"""Leitura dos planos e aplicação dos serviços nos contratos."""
 
 from .assistente import AssistenteCadastro
-from .catalogo import CatalogoSGP
-from .execucao import NivelLog, ObservadorExecucao, ResumoExecucao
-from .falhas import Causa, Falha, classificar
-from .validacao import Pendencia, validar
-from .lote import ControleExecucao, ExecutorLote, ItemLote, MontadorLote, SituacaoItem
+from .execucao import NivelLog, ResumoExecucao
+from .lote import ControleExecucao, ExecutorLote, MontadorLote, SituacaoItem
+from .validacao import validar
 
-__all__ = ["AssistenteCadastro", "Causa", "CatalogoSGP", "Falha", "classificar", "ControleExecucao", "ExecutorLote",
-           "ItemLote", "MontadorLote", "NivelLog", "ObservadorExecucao", "Pendencia", "ResumoExecucao", "SituacaoItem", "validar"]
+__all__ = ["AssistenteCadastro", "ControleExecucao", "ExecutorLote", "MontadorLote", "NivelLog", "ResumoExecucao",
+           "SituacaoItem", "validar"]

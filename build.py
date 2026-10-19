@@ -1,11 +1,4 @@
-"""Gera o executável de arquivo único para o sistema atual.
-
-    pip install ".[executavel]"     # ou: pip install -r requirements-build.txt
-    python build.py
-
-Saída em dist/: SGP-Cariap-windows.exe, SGP-Cariap-macos-arm64, SGP-Cariap-linux-x86_64...
-Para os três sistemas de uma vez, use o workflow .github/workflows/build.yml.
-"""
+"""Gera o executável do sistema atual em dist/ (pip install -r requirements-build.txt)."""
 
 import os
 import platform
@@ -27,7 +20,7 @@ def main() -> None:
     PyInstaller.__main__.run([
         "app.py",
         "--onefile",
-        "--console",  # a janela mostra o endereço; fechá-la encerra o assistente
+        "--console",
         "--name", nome,
         "--add-data", os.pathsep.join(["sgpcariap/static", "sgpcariap/static"]),
         "--hidden-import", "certifi",

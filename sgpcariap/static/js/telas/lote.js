@@ -1,7 +1,5 @@
-// Etapa 3: cadastra nos contratos dos clientes os serviços que o mapeamento pede, um contrato por vez.
-
 import { Eventos } from '../estado.js';
-import { $, $$, duracao, esc, info, numeroOuVazio, ocupado, plural, preencherLista, status } from '../util.js';
+import { $, $$, alternar, baixar, duracao, esc, info, numeroOuVazio, ocupado, plural, preencherLista, slug, status } from '../util.js';
 import { Tela } from './base.js';
 
 const SITUACOES = {
@@ -13,7 +11,6 @@ const SITUACOES = {
   pulado: ['', 'Fora'],
   bloqueado: ['aviso', 'Revisar cadastro'],
 };
-/** Títulos do resumo para grupos que bloqueiam (só avisos usam o título da própria pendência). */
 const TITULOS_PENDENCIA = {
   sem_email: 'Sem e-mail', email_invalido: 'E-mail inválido', sem_telefone: 'Sem telefone',
   telefone_invalido: 'Telefone inválido', sem_celular: 'Sem celular (só fixo)', celular_sem_9: 'Celular sem o 9',
@@ -29,6 +26,8 @@ export class TelaLote extends Tela {
     this.itens = [];
     this.selecionados = new Set();
     this.tarefa = null;
+    this.causaVisivel = '';
+    this.pendenciaVisivel = '';
     this.mensagem = $('#lt-msg');
     this.corpo = $('#tb-lote tbody');
 
@@ -37,15 +36,19 @@ export class TelaLote extends Tela {
     $('#btn-lote-pausar').addEventListener('click', () => this.#controlar(this.tarefa?.pausado ? 'retomar' : 'pausar'));
     $('#btn-lote-parar').addEventListener('click', () => this.#controlar('parar'));
     $('#lt-filtro').addEventListener('input', () => this.#renderizarTabela());
-    $('#lt-ver').addEventListener('change', () => {
-      this.causaVisivel = '';
-      this.pendenciaVisivel = '';
-      this.#renderizarTabela();
-    });
+    $('#lt-ver').addEventListener('change', (e) => this.#filtrarTabela({ ver: e.target.value }));
     $('#lt-marcar').addEventListener('click', () => this.#selecionarPendentes(true));
     $('#lt-desmarcar').addEventListener('click', () => this.#selecionarPendentes(false));
     $('#lt-csv').addEventListener('click', () => this.#baixarCsv());
     $('#btn-lote-retentar').addEventListener('click', () => this.#retentar());
+    $('#lt-falhas-lista').addEventListener('click', (e) => {
+      const botao = e.target.closest('[data-ver-causa]');
+      if (botao) this.#filtrarTabela({ ver: 'erro', causa: botao.dataset.verCausa, rolar: true });
+    });
+    $('#lt-cadastros-lista').addEventListener('click', (e) => {
+      const botao = e.target.closest('[data-ver-pendencia]');
+      if (botao) this.#filtrarTabela({ pendencia: botao.dataset.verPendencia, rolar: true });
+    });
     this.corpo.addEventListener('change', (e) => this.#alternarLinha(e.target));
     const secao = $('#sec-lote');
     secao.addEventListener('input', (e) => this.#editar(e.target));
@@ -66,8 +69,6 @@ export class TelaLote extends Tela {
   get lote() {
     return this.config.lote;
   }
-
-  // --- filtros e opções ------------------------------------------------------------
 
   #listarPlanosMapeados() {
     preencherLista('dl-lt-planos', this.config.grupos.flatMap((g) => g.planos));
@@ -139,14 +140,9 @@ export class TelaLote extends Tela {
   #limparLista() {
     if (this.tarefa?.status === 'rodando') return;
     this.itens = [];
-    $('#lt-tabela-wrap').hidden = true;
-    $('#lt-resumo').hidden = true;
-    $('#lt-falhas').hidden = true;
-    $('#lt-cadastros').hidden = true;
+    for (const id of ['#lt-tabela-wrap', '#lt-resumo', '#lt-falhas', '#lt-cadastros']) $(id).hidden = true;
     $('#btn-lote-iniciar').disabled = true;
   }
-
-  // --- lista de clientes -----------------------------------------------------------
 
   async buscar() {
     if (!this.estado.conectado) {
@@ -155,7 +151,7 @@ export class TelaLote extends Tela {
     }
     const restaurar = ocupado($('#btn-lote-buscar'), 'Buscando…');
     delete this.mensagem.dataset.dica;
-    // o relatório do SGP pode levar alguns segundos em bases grandes: mostra o tempo correndo
+    // o relatório do SGP demora em bases grandes
     const inicio = Date.now();
     const relogio = setInterval(() => status(this.mensagem, `Consultando o SGP… ${duracao((Date.now() - inicio) / 1000)}`), 1000);
     status(this.mensagem, 'Consultando o SGP…');
@@ -163,10 +159,10 @@ export class TelaLote extends Tela {
     try {
       const { itens } = await this.api.loteMontar(this.config);
       this.itens = itens;
-      this.selecionados = new Set(itens.filter((i) => i.situacao === 'pendente').map((i) => i.contrato));
+      this.selecionados = this.#pendentes();
       $('#lt-tabela-wrap').hidden = false;
       const pendentes = this.selecionados.size;
-      const revisar = itens.filter((i) => i.situacao === 'bloqueado').length;
+      const revisar = this.#contar('bloqueado');
       const semConferir = itens.filter((i) => (i.pendencias || []).some((p) => p.codigo === 'nao_conferido')).length;
       const partes = [plural(itens.length, 'contrato', 'contratos'),
         pendentes ? plural(pendentes, 'pendente', 'pendentes') : (revisar ? '' : 'todos completos'),
@@ -183,6 +179,23 @@ export class TelaLote extends Tela {
       clearInterval(relogio);
       restaurar();
     }
+  }
+
+  #contar(situacao) {
+    return this.itens.filter((i) => i.situacao === situacao).length;
+  }
+
+  #pendentes(filtro = () => true) {
+    return new Set(this.itens.filter((i) => i.situacao === 'pendente' && filtro(i)).map((i) => i.contrato));
+  }
+
+  #filtrarTabela({ ver = '', causa = '', pendencia = '', rolar = false }) {
+    $('#lt-ver').value = ver;
+    if (rolar) $('#lt-filtro').value = '';
+    this.causaVisivel = causa;
+    this.pendenciaVisivel = pendencia;
+    this.#renderizarTabela();
+    if (rolar) $('#lt-tabela-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   #visiveis() {
@@ -224,7 +237,6 @@ export class TelaLote extends Tela {
     return selo;
   }
 
-  /** Problemas do cadastro: os que bloqueiam em destaque, avisos discretos e o atalho para os contatos no SGP. */
   #pendencias(item) {
     const linhas = item.pendencias.map((p) => `<span class="${p.bloqueia ? 'bloqueia' : 'alerta'}">${esc(p.titulo)}${p.detalhe ? ` · ${esc(p.detalhe)}` : ''}</span>`);
     const sgp = this.estado.conexao?.url;
@@ -243,10 +255,9 @@ export class TelaLote extends Tela {
 
   #renderizarResumo() {
     $('#lt-resumo').hidden = this.itens.length === 0;
-    const contar = (s) => this.itens.filter((i) => i.situacao === s).length;
     for (const campo of $$('[data-lt-n]')) {
       const chave = campo.dataset.ltN;
-      campo.textContent = chave === 'selecionados' ? this.selecionados.size : contar(chave);
+      campo.textContent = chave === 'selecionados' ? this.selecionados.size : this.#contar(chave);
     }
     $('#btn-lote-iniciar').disabled = this.selecionados.size === 0 || this.tarefa?.status === 'rodando';
   }
@@ -254,19 +265,16 @@ export class TelaLote extends Tela {
   #alternarLinha(campo) {
     const contrato = campo.dataset.contrato;
     if (!contrato) return;
-    if (campo.checked) this.selecionados.add(contrato); else this.selecionados.delete(contrato);
+    alternar(this.selecionados, contrato, campo.checked);
     this.#renderizarResumo();
   }
 
   #selecionarPendentes(marcar) {
     for (const item of this.#visiveis()) {
-      if (item.situacao !== 'pendente') continue;
-      if (marcar) this.selecionados.add(item.contrato); else this.selecionados.delete(item.contrato);
+      if (item.situacao === 'pendente') alternar(this.selecionados, item.contrato, marcar);
     }
     this.#renderizarTabela();
   }
-
-  // --- execução ---------------------------------------------------------------------
 
   pedirConfirmacao() {
     const total = this.selecionados.size;
@@ -306,7 +314,7 @@ export class TelaLote extends Tela {
         this.tarefa = await this.api.tarefa(id);
         falhasSeguidas = 0;
       } catch (erro) {
-        // o assistente pode demorar a responder num pico; só desiste depois de várias tentativas
+        // o assistente pode demorar a responder num pico
         if (++falhasSeguidas >= 5) throw erro;
         await new Promise((resolver) => setTimeout(resolver, INTERVALO_CONSULTA_MS * 2));
         continue;
@@ -317,13 +325,13 @@ export class TelaLote extends Tela {
       if (this.tarefa.status !== 'rodando') break;
       await new Promise((resolver) => setTimeout(resolver, INTERVALO_CONSULTA_MS));
     }
-    const contar = (s) => this.itens.filter((i) => i.situacao === s).length;
-    const resumo = [plural(contar('concluido'), 'concluído', 'concluídos'), plural(contar('erro'), 'erro', 'erros'),
-      plural(contar('pendente'), 'pendente', 'pendentes')].join(' · ');
+    const erros = this.#contar('erro');
+    const resumo = [plural(this.#contar('concluido'), 'concluído', 'concluídos'), plural(erros, 'erro', 'erros'),
+      plural(this.#contar('pendente'), 'pendente', 'pendentes')].join(' · ');
     const tempo = duracao((Date.now() - this.inicioExecucao) / 1000);
-    status(this.mensagem, `${resumo} · ${tempo}`, contar('erro') ? 'erro' : 'ok');
+    status(this.mensagem, `${resumo} · ${tempo}`, erros ? 'erro' : 'ok');
     this.mensagem.dataset.dica = `Registro salvo em ${this.tarefa.arquivo || 'execucoes/'}`;
-    this.selecionados = new Set(this.itens.filter((i) => i.situacao === 'pendente').map((i) => i.contrato));
+    this.selecionados = this.#pendentes();
     this.tarefa = null;
     $('#lt-andamento').hidden = true;
     this.#renderizarTabela();
@@ -331,7 +339,6 @@ export class TelaLote extends Tela {
     this.#renderizarCadastros();
   }
 
-  /** Contratos desta execução: pendentes no início, até o limite. */
   #alvo(t) {
     const alvo = t.passos.filter((p) => !['completo', 'pulado'].includes(p.situacao));
     return t.limite ? alvo.slice(0, t.limite) : alvo;  // o executor segue a ordem da lista
@@ -357,15 +364,14 @@ export class TelaLote extends Tela {
 
     const decorrido = (Date.now() - this.inicioExecucao) / 1000;
     $('#lt-decorrido').textContent = duracao(decorrido);
-    // estimativa: média dos contratos já processados mais a pausa entre eles
+    // média dos contratos já processados mais a pausa
     const tempos = alvo.map((p) => p.duracao).filter((d) => typeof d === 'number');
     const restantes = alvo.length - feitos;
     let restante = '';
-    if (t.parada_pedida || t.pausado || !restantes) restante = '';
-    else if (tempos.length) {
+    if (restantes && !t.parada_pedida && !t.pausado) {
       const media = tempos.reduce((a, b) => a + b, 0) / tempos.length + (t.pausa_segundos || 0);
-      restante = ` · faltam ~${duracao(media * restantes)}`;
-    } else restante = ' · estimando…';
+      restante = tempos.length ? ` · faltam ~${duracao(media * restantes)}` : ' · estimando…';
+    }
     $('#lt-restante').textContent = restante;
 
     const atual = t.passos.find((p) => p.situacao === 'rodando');
@@ -394,7 +400,6 @@ export class TelaLote extends Tela {
     if (noFim) lista.scrollTop = lista.scrollHeight;
   }
 
-  /** Falhas agrupadas por causa, com o que fazer e quantos contratos atingiu. */
   #renderizarFalhas() {
     const grupos = new Map();
     for (const item of this.itens.filter((i) => i.situacao === 'erro')) {
@@ -412,28 +417,16 @@ export class TelaLote extends Tela {
         <div><b>${esc(g.titulo)}</b><p class="nota">${esc(g.orientacao)}</p></div>
         <button class="btn sutil pequeno" type="button" data-ver-causa="${esc(g.causa)}">Ver</button>
       </li>`).join('');
-    for (const botao of $$('[data-ver-causa]')) {
-      botao.addEventListener('click', () => {
-        $('#lt-ver').value = 'erro';
-        $('#lt-filtro').value = '';
-        this.pendenciaVisivel = '';
-        this.causaVisivel = botao.dataset.verCausa;
-        this.#renderizarTabela();
-        $('#lt-tabela-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
   }
 
-  /** Pendências de cadastro agrupadas por tipo; as que bloqueiam primeiro. */
   #renderizarCadastros() {
     const grupos = new Map();
     for (const item of this.itens.filter((i) => ['bloqueado', 'pendente'].includes(i.situacao))) {
       for (const p of item.pendencias || []) {
-        const chave = p.codigo;
-        const g = grupos.get(chave) ?? { ...p, bloqueia: false, contratos: new Set() };
+        const g = grupos.get(p.codigo) ?? { ...p, bloqueia: false, contratos: new Set() };
         g.bloqueia ||= p.bloqueia;
         g.contratos.add(item.contrato);
-        grupos.set(chave, g);
+        grupos.set(p.codigo, g);
       }
     }
     $('#lt-cadastros').hidden = grupos.size === 0;
@@ -444,43 +437,27 @@ export class TelaLote extends Tela {
         <div><b>${esc((g.bloqueia && TITULOS_PENDENCIA[g.codigo]) || g.titulo)}</b><p class="nota">${g.bloqueia ? 'Fica de fora até corrigir' : 'Só aviso, segue na lista'}</p></div>
         <button class="btn sutil pequeno" type="button" data-ver-pendencia="${esc(g.codigo)}">Ver</button>
       </li>`).join('');
-    for (const botao of $$('[data-ver-pendencia]')) {
-      botao.addEventListener('click', () => {
-        $('#lt-ver').value = '';
-        $('#lt-filtro').value = '';
-        this.causaVisivel = '';
-        this.pendenciaVisivel = botao.dataset.verPendencia;
-        this.#renderizarTabela();
-        $('#lt-tabela-wrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      });
-    }
   }
 
-  /** Busca de novo e deixa selecionados só os contratos que falharam (e continuam pendentes). */
   async #retentar() {
     const comErro = new Set(this.itens.filter((i) => i.situacao === 'erro').map((i) => i.contrato));
-    const itens = await this.buscar();
-    if (!itens) return;
-    this.selecionados = new Set(itens.filter((i) => i.situacao === 'pendente' && comErro.has(i.contrato)).map((i) => i.contrato));
+    if (!(await this.buscar())) return;
+    this.selecionados = this.#pendentes((i) => comErro.has(i.contrato));
     $('#lt-ver').value = 'pendente';
     this.#renderizarTabela();
     status(this.mensagem, `${plural(this.selecionados.size, 'contrato com erro selecionado', 'contratos com erro selecionados')}. Corrija no SGP e clique em Iniciar.`);
   }
 
   #baixarCsv() {
-    // texto vindo do SGP que começa com = + - @ viraria fórmula no Excel; o apóstrofo impede
+    // texto do SGP começando com = + - @ viraria fórmula no Excel
     const campo = (v) => `"${String(v ?? '').replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""')}"`;
     const pendencias = (i) => (i.pendencias || []).map((p) => (p.detalhe ? `${p.titulo}: ${p.detalhe}` : p.titulo)).join(' | ');
     const linhas = [['Contrato', 'Cliente', 'Plano', 'Situação', 'Adicionar', 'Ativar', 'Causa', 'Cadastro', 'Mensagem']]
       .concat(this.itens.map((i) => [i.contrato, i.cliente, i.plano_internet, (SITUACOES[i.situacao] || ['', i.situacao])[1],
         i.faltando.join(', '), i.ativar.join(', '), (i.falhas || []).map((f) => f.titulo).join(', '), pendencias(i), i.msg]));
     const csv = '\ufeff' + linhas.map((l) => l.map(campo).join(';')).join('\r\n');
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-    const provedor = (this.config.provedor || 'provedor').normalize('NFD').replace(/[^\w]+/g, '-').toLowerCase();
-    link.download = `clientes-${provedor}-${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.csv`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    const quando = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    baixar(`clientes-${slug(this.config.provedor || 'provedor')}-${quando}.csv`, csv, 'text/csv;charset=utf-8');
   }
 
   async #controlar(acao) {

@@ -1,8 +1,6 @@
-"""Interface local: servidor HTTP, API e execuções em segundo plano."""
+"""Servidor local, API e execuções em segundo plano."""
 
-from .api import ApiAssistente, rota
+from .api import ApiAssistente
 from .servidor import ServidorAssistente
-from .tarefas import GerenciadorTarefas, RegistroExecucoes, StatusTarefa, Tarefa
 
-__all__ = ["ApiAssistente", "GerenciadorTarefas", "RegistroExecucoes", "ServidorAssistente",
-           "StatusTarefa", "Tarefa", "rota"]
+__all__ = ["ApiAssistente", "ServidorAssistente"]

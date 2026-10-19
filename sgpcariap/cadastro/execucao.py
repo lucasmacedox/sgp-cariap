@@ -1,4 +1,4 @@
-"""Tipos comuns às execuções acompanhadas pela interface."""
+"""Tipos compartilhados pelas execuções."""
 
 from __future__ import annotations
 
@@ -14,10 +14,7 @@ class NivelLog(str, Enum):
 
 
 class ObservadorExecucao(Protocol):
-    """Recebe o andamento da execução (tela, arquivo de registro, testes)."""
-
-    def passo_atualizado(self, indice: int, passo: Any) -> None:
-        """``passo`` tem ``para_dict()``."""
+    def passo_atualizado(self, indice: int, passo: Any) -> None: ...
 
     def registrar(self, mensagem: str, nivel: NivelLog = NivelLog.INFO) -> None: ...
 
@@ -25,7 +22,6 @@ class ObservadorExecucao(Protocol):
 @dataclass(frozen=True)
 class ResumoExecucao:
     concluidos: int
-    pulados: int
     erros: int
 
     @property

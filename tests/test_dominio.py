@@ -1,7 +1,8 @@
+import dataclasses
 import unittest
 from decimal import Decimal
 
-from sgpcariap.dominio import Configuracao, formatar_br, nome_do_plano, para_decimal
+from sgpcariap.dominio import Configuracao, nome_do_plano, para_decimal
 
 from .apoio import configuracao_exemplo
 
@@ -17,9 +18,6 @@ class TestDinheiro(unittest.TestCase):
         for entrada in (None, "", "abc", True):
             with self.subTest(entrada=entrada):
                 self.assertIsNone(para_decimal(entrada))
-
-    def test_formatacao_brasileira(self):
-        self.assertEqual(formatar_br(Decimal("1234.5")), "1.234,50")
 
 
 class TestMapeamento(unittest.TestCase):
@@ -53,7 +51,7 @@ class TestMapeamento(unittest.TestCase):
 
     def test_ida_e_volta(self):
         original = configuracao_exemplo()
-        self.assertEqual(Configuracao.de_dict(original.para_dict()), original)
+        self.assertEqual(Configuracao.de_dict(dataclasses.asdict(original)), original)
 
 
 if __name__ == "__main__":

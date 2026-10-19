@@ -1,18 +1,7 @@
-"""Aplicação dos serviços nos contratos dos clientes, um contrato por vez.
+"""Aplicação dos serviços nos contratos, um por vez, no contrato que já existe (mesma fatura).
 
-O SGP não tem cadastro de serviços em lote pela interface (só importação no
-servidor). Para cada contrato, a rotina faz o que um operador faria: abre o
-contrato, acrescenta os serviços que faltam e clica em ativar.
-
-Os serviços entram no contrato que já existe, para ficarem na mesma fatura do
-plano de internet.
-
-``MontadorLote.montar`` consulta o relatório de serviços com os filtros e
-compara, contrato a contrato, o que o cliente já tem com o que o grupo do
-plano dele pede. Em seguida confere o cadastro dos clientes pendentes (e-mail,
-telefone e CPF/CNPJ, ver ``validacao``); quem tiver pendência que bloqueia fica
-de fora da execução. ``ExecutorLote.executar`` percorre os pendentes respeitando
-pausa e parada; rodar de novo só faz o que ainda falta.
+``MontadorLote`` compara o que cada contrato tem com o que o mapeamento pede;
+``ExecutorLote`` adiciona e ativa o que falta. Rodar de novo só faz o que ainda falta.
 """
 
 from __future__ import annotations
@@ -20,10 +9,10 @@ from __future__ import annotations
 import threading
 import time
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import TYPE_CHECKING
-from collections.abc import Callable
 
 from ..dominio import Configuracao, ConfiguracaoLote, nome_do_plano
 from ..erros import ErroAssistente, ErroAtivacao
@@ -43,33 +32,25 @@ class SituacaoItem(str, Enum):
     CONCLUIDO = "concluido"
     ERRO = "erro"
     PULADO = "pulado"
-    BLOQUEADO = "bloqueado"
-    """Cadastro do cliente com pendência; não entra na execução até ser corrigido."""
+    BLOQUEADO = "bloqueado"  # pendência no cadastro do cliente
 
 
 @dataclass
 class ItemLote:
-    """Um contrato e o que falta nele."""
-
     contrato_id: str
     cliente: str
     plano_internet: str
     servico_internet_id: str
     servicos: list[str]
     faltando: list[str] = field(default_factory=list)
-    """Serviços do grupo que o contrato ainda não tem."""
-    inativos: dict[str, str] = field(default_factory=dict)
-    """Serviço → ID do serviço de TV que já está no contrato, mas inativo."""
+    inativos: dict[str, str] = field(default_factory=dict)  # serviço → ID do serviço de TV
     situacao: SituacaoItem = SituacaoItem.PENDENTE
     mensagem: str = ""
     etapa: str = ""
-    """O que está sendo feito agora neste contrato (só enquanto roda)."""
     falhas: list[Falha] = field(default_factory=list)
     duracao: float | None = None
-    """Segundos gastos no contrato, para estimar o tempo restante."""
     cliente_id: str = ""
     pendencias: list[Pendencia] = field(default_factory=list)
-    """Problemas no cadastro do cliente (só dos contratos pendentes, quando conferido)."""
 
     @property
     def a_fazer(self) -> bool:
@@ -85,8 +66,6 @@ class ItemLote:
 
 
 class MontadorLote:
-    """Monta a lista de contratos comparando o que existe com o que o mapeamento pede."""
-
     def __init__(self, catalogo: CatalogoSGP, config: Configuracao):
         self._catalogo = catalogo
         self._relatorio = catalogo.telas.relatorio_servicos
@@ -124,8 +103,6 @@ class MontadorLote:
         return sorted(itens.values(), key=lambda i: (not i.a_fazer, i.cliente))
 
     def _conferir_cadastros(self, itens: list[ItemLote]) -> None:
-        """Uma exportação por plano com contrato pendente. Se a de um plano falhar, os contratos
-        dele seguem com o aviso "não conferido" e o motivo, em vez de interromper a busca."""
         if not itens or not self._lote.validar_cadastro:
             return
         exportacoes = []
@@ -145,7 +122,6 @@ class MontadorLote:
                 item.situacao, item.mensagem = SituacaoItem.BLOQUEADO, ", ".join(bloqueios)
 
     def _verificar_versao(self) -> None:
-        """Telas diferentes das conhecidas: melhor parar antes do que ler a base errado."""
         problemas = self._catalogo.telas.incompatibilidades(cadastro=self._lote.validar_cadastro)
         if problemas:
             versao = self._catalogo.cliente.versao_sgp
@@ -153,7 +129,7 @@ class MontadorLote:
                                  f"conhecidas pelo assistente: {'; '.join(problemas)}. Envie esta mensagem ao suporte.")
 
     def _verificar_planos_tv(self, servicos: list[str]) -> None:
-        """Plano de TV sem POP não aparece em contrato nenhum; melhor avisar antes de começar."""
+        # plano de TV sem POP não aparece no formulário de nenhum contrato
         ids = {p.nome.lower(): p.id for p in self._catalogo.planos_servico}
         sem_pop = [s for s in servicos if s.lower() in ids
                    and not self._catalogo.telas.lista_planos.pops(ids[s.lower()])]
@@ -162,7 +138,6 @@ class MontadorLote:
                                  + ". Inclua os POPs no cadastro do plano e busque de novo.")
 
     def _servicos_por_contrato(self, servicos: list[str]) -> dict[str, dict[str, tuple[str, str]]]:
-        """Contrato → {serviço (minúsculo): (ID do serviço de TV, situação)}, preferindo o ativo."""
         por_contrato: dict[str, dict[str, tuple[str, str]]] = {}
         for tv in self._relatorio.buscar(FiltroServicos(tipo="TV", planos_tv=servicos)):
             do_contrato = por_contrato.setdefault(tv.contrato_id, {})
@@ -191,8 +166,6 @@ class MontadorLote:
 
 @dataclass
 class ControleExecucao:
-    """Pausa, retomada e parada pedidas pela interface durante a execução."""
-
     _liberado: threading.Event = field(default_factory=threading.Event)
     _parar: threading.Event = field(default_factory=threading.Event)
 
@@ -218,7 +191,7 @@ class ControleExecucao:
         self._liberado.set()
 
     def esperar(self, segundos: float) -> bool:
-        """Aguarda a pausa entre contratos e uma eventual pausa manual; ``False`` se pediram para parar."""
+        """``False`` se pediram para parar."""
         if self._parar.wait(timeout=max(0.0, segundos)):
             return False
         self._liberado.wait()
@@ -226,12 +199,7 @@ class ControleExecucao:
 
 
 class ExecutorLote:
-    """Percorre os contratos pendentes; a falha de um não interrompe os demais.
-
-    Exceção: se vários contratos seguidos falham só por causas gerais (SGP fora
-    do ar, sessão recusada, falta de permissão), a execução para, porque os
-    próximos falhariam do mesmo jeito. Os restantes ficam pendentes.
-    """
+    """A falha de um contrato não interrompe os demais, salvo falhas gerais seguidas."""
 
     LIMITE_FALHAS_GERAIS = 3
 
@@ -267,9 +235,7 @@ class ExecutorLote:
                     f"{causa.orientacao} Os restantes continuam pendentes.", NivelLog.ERRO)
                 break
         total = Counter(i.situacao for i in itens)
-        return ResumoExecucao(total[SituacaoItem.CONCLUIDO], total[SituacaoItem.COMPLETO], total[SituacaoItem.ERRO])
-
-    # --- um contrato --------------------------------------------------------------------
+        return ResumoExecucao(total[SituacaoItem.CONCLUIDO], total[SituacaoItem.ERRO])
 
     def _processar(self, indice: int, item: ItemLote) -> None:
         inicio = self._relogio()
@@ -291,13 +257,12 @@ class ExecutorLote:
             self._observador.registrar(f"{rotulo}: {', '.join(feitos)}", NivelLog.SUCESSO)
 
     def _endereco(self, indice: int, item: ItemLote) -> dict[str, str] | None:
-        """Endereço de instalação para os serviços novos; ``None`` se não deu para ler."""
         if not item.faltando:
             return {}
         self._etapa(indice, item, "Lendo endereço")
         try:
             return self._tela.endereco_de_instalacao(item.servico_internet_id)
-        except Exception as erro:  # noqa: BLE001 - registrado como falha do contrato
+        except Exception as erro:  # noqa: BLE001
             falha = classificar(erro)
             item.falhas.append(Falha("", falha.causa, f"endereço de instalação: {falha.mensagem}"))
             return None
@@ -311,10 +276,10 @@ class ExecutorLote:
                 servico_id = self._tela.adicionar(item.contrato_id, NovoServicoTV(
                     grupo=self._padroes.grupo_tv or "TV", plano=servico, endereco=endereco,
                     modo_aquisicao=self._padroes.modo_aquisicao or "Comodato"))
-            except Exception as erro:  # noqa: BLE001 - segue para o próximo serviço
+            except Exception as erro:  # noqa: BLE001
                 item.falhas.append(classificar(erro, servico))
                 if item.falhas[-1].geral:
-                    break  # os outros serviços deste contrato falhariam igual
+                    break
                 continue
             item.faltando.remove(servico)
             if self._lote.ativar:
@@ -330,7 +295,7 @@ class ExecutorLote:
         for servico, servico_id in list(item.inativos.items()):
             self._etapa(indice, item, f"Ativando {servico}")
             try:
-                if not self._tela.ativar(servico_id).ativo:
+                if not self._tela.ativar(servico_id):
                     raise ErroAtivacao(f"não ativou. {self._ORIENTACAO}")
             except Exception as erro:  # noqa: BLE001
                 item.falhas.append(classificar(erro, servico))

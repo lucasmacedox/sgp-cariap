@@ -1,40 +1,33 @@
-"""Hierarquia de exceções do assistente.
-
-Toda exceção derivada de ``ErroAssistente`` carrega uma mensagem pronta para o
-usuário final. A camada web devolve essas mensagens como estão; qualquer outra
-exceção é tratada como falha interna.
-"""
+"""Exceções com mensagem pronta para o usuário."""
 
 from __future__ import annotations
 
 
 class ErroAssistente(Exception):
-    """Erro esperado, com mensagem que pode ser exibida ao usuário."""
+    pass
 
 
 class ErroSGP(ErroAssistente):
-    """Falha na comunicação com o SGP."""
+    pass
 
 
 class ErroConexao(ErroSGP):
-    """O endereço do SGP não respondeu."""
+    pass
 
 
 class ErroCertificado(ErroConexao):
-    """O certificado HTTPS do SGP não pôde ser verificado."""
+    pass
 
 
 class ErroAutenticacao(ErroSGP):
-    """Usuário ou senha recusados, ou sessão expirada."""
+    pass
 
 
 class ErroPermissao(ErroSGP):
-    """O usuário não tem acesso a uma tela necessária."""
+    pass
 
 
 class ErroFormulario(ErroSGP):
-    """O SGP recusou o envio de um formulário."""
-
     def __init__(self, mensagens: list[str], status: int | None = None):
         self.mensagens = mensagens
         self.status = status
@@ -43,7 +36,7 @@ class ErroFormulario(ErroSGP):
 
 
 class ErroOpcao(ErroAssistente):
-    """Um texto escolhido não corresponde a uma opção do formulário."""
+    pass
 
 
 class OpcaoNaoEncontrada(ErroOpcao):
@@ -59,16 +52,16 @@ class OpcaoAmbigua(ErroOpcao):
 
 
 class ErroPlanoIndisponivel(ErroSGP):
-    """O plano não aparece no formulário do contrato (sem o POP do contrato liberado)."""
+    """Plano fora do POP do contrato."""
 
 
 class ErroIdentificacao(ErroSGP):
-    """O serviço foi gravado, mas não foi possível descobrir o ID dele para ativar."""
+    """Serviço gravado, mas sem ID para ativar."""
 
 
 class ErroAtivacao(ErroSGP):
-    """O SGP aceitou o pedido de ativação, mas o serviço continuou inativo."""
+    pass
 
 
 class ErroEstado(ErroAssistente):
-    """Operação pedida fora de ordem (por exemplo, buscar clientes sem conexão)."""
+    pass

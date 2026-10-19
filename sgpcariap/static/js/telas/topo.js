@@ -1,10 +1,7 @@
-// Barra superior: seletor de provedor, arquivos de configuração e menu de ajuda.
-
 import { VERSAO_CONFIG, normalizarConfiguracao, novaConfiguracao } from '../dominio.js';
 import { Eventos } from '../estado.js';
-import { $, esc } from '../util.js';
+import { $, baixar, esc, slug } from '../util.js';
 import { Tela } from './base.js';
-
 
 export class SeletorProvedor extends Tela {
   constructor(contexto) {
@@ -21,30 +18,14 @@ export class SeletorProvedor extends Tela {
       .map((nome) => `<option ${nome === this.estado.provedor ? 'selected' : ''}>${esc(nome)}</option>`).join('');
   }
 
-  /** Cada provedor tem seu SGP: ao trocar, a conexão atual é encerrada. */
   async trocar(nome) {
-    if (!(await this.#encerrarConexao())) {
+    if (!(await this.encerrarConexao())) {
       this.renderizar();  // volta o seletor para o provedor atual
       return;
     }
     this.estado.trocarProvedor(nome);
     if (!this.config.sgp.url) this.navegacao.mostrar('conexao');
     this.avisos.mostrar(nome);
-  }
-
-  /** Encerra a conexão atual; `false` se o servidor recusar (execução em andamento). */
-  async #encerrarConexao() {
-    if (!this.estado.conexao) return true;
-    try {
-      await this.api.desconectar();
-    } catch (erro) {
-      if (!erro.message.startsWith('O assistente não responde')) {
-        this.avisos.erro(erro.message);
-        return false;
-      }
-    }
-    this.estado.definirConexao(null);
-    return true;
   }
 
   pedirNome(pergunta, sugestao = '') {
@@ -64,7 +45,7 @@ export class SeletorProvedor extends Tela {
     if (this.config.grupos.length && confirm('Copiar os grupos do provedor atual?')) {
       nova.grupos = structuredClone(this.config.grupos);
     }
-    if (!(await this.#encerrarConexao())) return;
+    if (!(await this.encerrarConexao())) return;
     this.estado.criarProvedor(nome, nova);
     this.navegacao.mostrar('conexao');
   }
@@ -94,12 +75,8 @@ export class ArquivoConfiguracao extends Tela {
   }
 
   exportar() {
-    const nome = (this.config.provedor || 'provedor').normalize('NFD').replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase();
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(new Blob([JSON.stringify(this.config, null, 2)], { type: 'application/json' }));
-    link.download = `sgp-cariap-${nome}-${new Date().toISOString().slice(0, 10)}.json`;
-    link.click();
-    setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+    const nome = `sgp-cariap-${slug(this.config.provedor || 'provedor')}-${new Date().toISOString().slice(0, 10)}.json`;
+    baixar(nome, JSON.stringify(this.config, null, 2), 'application/json');
   }
 
   async importar(campo) {
@@ -110,8 +87,7 @@ export class ArquivoConfiguracao extends Tela {
       const dados = JSON.parse(await arquivo.text());
       if (!dados.versao || dados.versao > VERSAO_CONFIG) throw new Error('arquivo não reconhecido');
       let nome = dados.provedor || arquivo.name.replace(/\.json$/i, '');
-      if (this.estado.existeProvedor(nome)
-          && !confirm(`Substituir a configuração de “${nome}”?`)) {
+      if (this.estado.existeProvedor(nome) && !confirm(`Substituir a configuração de “${nome}”?`)) {
         nome = this.seletorProvedor.pedirNome('Nome do provedor importado', `${nome} (importado)`);
         if (!nome) return;
       }

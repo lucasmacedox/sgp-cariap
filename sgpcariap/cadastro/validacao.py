@@ -1,12 +1,4 @@
-"""Conferência do cadastro do cliente antes de aplicar os serviços.
-
-A ativação no Cariap cria o acesso do cliente com os dados do SGP; e-mail,
-telefone ou CPF/CNPJ errados fazem a ativação falhar (ou o cliente não receber
-o acesso). Conferir antes evita gravar no SGP serviços que não vão ativar.
-
-Cada problema vira uma ``Pendencia``. As que *bloqueiam* tiram o contrato da
-execução até o cadastro ser corrigido; as demais são só avisos.
-"""
+"""Conferência do cadastro antes de aplicar: o Cariap cria o acesso com e-mail, celular e CPF/CNPJ do SGP."""
 
 from __future__ import annotations
 
@@ -19,7 +11,7 @@ ORIENTACAO = "Corrija no SGP (cliente → Contatos ou Cadastro) e busque de novo
 
 _EMAIL = re.compile(r"[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+)*"
                     r"@(?:[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?\.)+[A-Za-z]{2,}")
-# erros de digitação comuns no final do domínio ("gmail.con")
+# "gmail.con"
 _FINAIS_ERRADOS = {"con", "cmo", "cpm", "comm", "coom", "vom", "xom", "cim"}
 
 
@@ -39,14 +31,11 @@ NAO_ENCONTRADO = "o contrato não apareceu na lista de clientes do SGP"
 
 
 def validar(contatos: ContatosCliente | None, motivo: str = NAO_ENCONTRADO) -> list[Pendencia]:
-    """Pendências do cadastro; ``None`` (com o ``motivo``) quando não deu para conferir."""
     if contatos is None:
         return [Pendencia("nao_conferido", "Cadastro não conferido", motivo, bloqueia=False)]
     return [*_documento(contatos.documento), *_emails(contatos.emails),
             *_telefones(contatos.celulares + contatos.telefones)]
 
-
-# --- e-mail --------------------------------------------------------------------------
 
 def email_valido(email: str) -> bool:
     email = email.strip()
@@ -65,32 +54,34 @@ def _emails(emails: tuple[str, ...]) -> list[Pendencia]:
     return []
 
 
-# --- telefone ------------------------------------------------------------------------
-
-def tipo_telefone(numero: str) -> str | None:
-    """"celular", "fixo" ou ``None`` (inválido), para números brasileiros com DDD."""
+def _digitos(numero: str) -> str:
+    """DDD + número, sem o 55; vazio se não for um telefone válido."""
     digitos = re.sub(r"\D", "", numero).lstrip("0")
     if len(digitos) in (12, 13) and digitos.startswith("55"):
         digitos = digitos[2:]
     if len(digitos) not in (10, 11) or "0" in digitos[:2] or len(set(digitos[2:])) == 1:
-        return None
+        return ""
+    return digitos
+
+
+def tipo_telefone(numero: str) -> str | None:
+    """"celular", "fixo" ou ``None``."""
+    digitos = _digitos(numero)
     if len(digitos) == 11:
         return "celular" if digitos[2] == "9" else None
-    return "fixo" if digitos[2] in "2345" else None  # 10 dígitos começando com 6-9: celular sem o 9
+    return "fixo" if digitos and digitos[2] in "2345" else None  # 6-9 com 10 dígitos: celular sem o 9
 
 
 def celular_sem_nove(numero: str) -> str | None:
-    """Celular no formato antigo, de 8 dígitos: "(84) 9999-0001" → "(84) 99999-0001"."""
-    digitos = re.sub(r"\D", "", numero).lstrip("0")
-    if len(digitos) == 12 and digitos.startswith("55"):
-        digitos = digitos[2:]
-    if len(digitos) != 10 or "0" in digitos[:2] or digitos[2] not in "6789" or len(set(digitos[2:])) == 1:
+    """"(84) 9999-0001" → "(84) 99999-0001"."""
+    digitos = _digitos(numero)
+    if len(digitos) != 10 or digitos[2] not in "6789":
         return None
     return f"({digitos[:2]}) 9{digitos[2:6]}-{digitos[6:]}"
 
 
 def _telefones(numeros: tuple[str, ...]) -> list[Pendencia]:
-    """O Cariap só cria o acesso com um celular com o 9; telefone fixo não basta."""
+    # o Cariap só cria o acesso com celular com o 9
     if not numeros:
         return [Pendencia("sem_telefone", "Sem telefone")]
     tipos = {tipo_telefone(n) for n in numeros}
@@ -103,8 +94,6 @@ def _telefones(numeros: tuple[str, ...]) -> list[Pendencia]:
         return [Pendencia("sem_celular", "Sem celular", "só telefone fixo: " + ", ".join(numeros))]
     return [Pendencia("telefone_invalido", "Telefone inválido", ", ".join(numeros))]
 
-
-# --- CPF/CNPJ ------------------------------------------------------------------------
 
 def documento_valido(documento: str) -> bool:
     digitos = re.sub(r"\D", "", documento)

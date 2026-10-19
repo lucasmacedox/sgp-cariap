@@ -4,13 +4,13 @@ from types import SimpleNamespace
 
 from sgpcariap.cadastro import ControleExecucao, ExecutorLote, MontadorLote, SituacaoItem
 from sgpcariap.erros import ErroAssistente, ErroConexao, ErroFormulario, ErroPlanoIndisponivel
-from sgpcariap.sgp import ContatosCliente, ServicoContratado, SituacaoServicoTV
+from sgpcariap.sgp import ContatosCliente, ServicoContratado
 
 from .apoio import ObservadorMemoria, configuracao_exemplo
 
 
-def _servico(servico_id, contrato, plano, tipo="Internet", situacao="Ativo"):
-    return ServicoContratado(servico_id, tipo, contrato, f"Cliente {contrato}", plano, "", "", situacao)
+def _servico(servico_id, contrato, plano, situacao="Ativo"):
+    return ServicoContratado(servico_id, contrato, f"Cliente {contrato}", plano, situacao)
 
 
 @dataclass
@@ -42,10 +42,7 @@ class ServicoTVFalso:
 
     def ativar(self, servico_id):
         self.ativados.append(servico_id)
-        return self.situacao(servico_id)
-
-    def situacao(self, servico_id):
-        return SituacaoServicoTV(ativo=servico_id.split(":", 1)[-1] not in self.nao_ativa, gateway_id="", smartcard="")
+        return servico_id.split(":", 1)[-1] not in self.nao_ativa
 
 
 CADASTRO_OK = ContatosCliente("1", "529.982.247-25", ("(84) 99999-0001",), (), ("cliente@exemplo.com.br",))
@@ -88,9 +85,8 @@ class TestMontadorLote(unittest.TestCase):
         relatorio = RelatorioFalso(
             internet=[_servico("1", "10", "400 MEGA"), _servico("2", "20", "600 MEGA"), _servico("3", "30", "1GB"),
                       _servico("4", "40", "400 MEGA"), _servico("5", "10", "400 MEGA")],
-            tv=[_servico("a", "20", "E-book Super Essencial", "TV"), _servico("b", "20", "Audiobook Super Duo", "TV"),
-                _servico("c", "30", "E-book Super Duo", "TV", "Inativo"),
-                _servico("d", "40", "E-book Super Essencial", "TV")])
+            tv=[_servico("a", "20", "E-book Super Essencial"), _servico("b", "20", "Audiobook Super Duo"),
+                _servico("c", "30", "E-book Super Duo", "Inativo"), _servico("d", "40", "E-book Super Essencial")])
         itens = {i.contrato_id: i for i in MontadorLote(_catalogo(relatorio), configuracao_exemplo()).montar()}
         self.assertEqual(len(itens), 4)  # contrato 10 com dois serviços de internet vira um item
         self.assertEqual(itens["10"].faltando, ["E-book Super Essencial", "Audiobook Super Duo"])

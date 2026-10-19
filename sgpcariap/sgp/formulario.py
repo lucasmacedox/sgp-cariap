@@ -1,23 +1,20 @@
-"""Leitura de formulários HTML do SGP e montagem dos dados de envio.
+"""Leitura de formulários HTML do SGP.
 
-Um envio reproduz o que o navegador faria: parte dos valores que a página já
-traz (campos ocultos, caixas marcadas, opções selecionadas) e substitui apenas
-os campos que o cadastro precisa alterar. Assim campos novos que o SGP venha a
-acrescentar continuam com o valor padrão da tela.
+O envio parte dos valores que a página já traz e troca só os campos alterados,
+como o navegador faria; campos novos do SGP seguem com o valor padrão.
 """
 
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from html import unescape
 from html.parser import HTMLParser
-from collections.abc import Iterable, Iterator, Mapping, Sequence
 
 from ..erros import OpcaoAmbigua, OpcaoNaoEncontrada
 
-ValorCampo = str | Sequence[str] | None
-"""Valor de uma alteração: texto, lista (select múltiplo) ou ``None`` (remove o campo)."""
+ValorCampo = str | Sequence[str] | None  # lista: select múltiplo; None: remove o campo
 
 
 def _normalizar(texto: str) -> str:
@@ -31,8 +28,6 @@ class Opcao:
 
 
 class ListaOpcoes(Sequence[Opcao]):
-    """Opções de um ``<select>``, com busca pelo texto que o usuário vê."""
-
     def __init__(self, opcoes: Iterable[Opcao] = (), campo: str = ""):
         self._opcoes = tuple(opcoes)
         self.campo = campo
@@ -47,23 +42,14 @@ class ListaOpcoes(Sequence[Opcao]):
         return iter(self._opcoes)
 
     def rotulos(self) -> list[str]:
-        """Rótulos das opções selecionáveis (sem a opção vazia ``---------``), sem repetir."""
         unicos: dict[str, str] = {}
         for opcao in self._opcoes:
             if opcao.valor:
                 unicos.setdefault(_normalizar(opcao.rotulo), opcao.rotulo)
         return list(unicos.values())
 
-    def contem_valor(self, valor: str) -> bool:
-        return any(o.valor == valor for o in self._opcoes)
-
     def resolver(self, texto: str, descricao: str | None = None) -> str:
-        """Valor da opção correspondente a ``texto``.
-
-        A busca tenta, nesta ordem: rótulo idêntico, rótulo que começa com o
-        texto e rótulo que contém o texto (sem diferenciar maiúsculas). Nas duas
-        últimas, mais de um resultado é tratado como ambíguo.
-        """
+        """Rótulo idêntico, depois que começa com ``texto``, depois que contém ``texto``."""
         rotulo_campo = descricao or self.campo
         alvo = _normalizar(texto)
         validas = [(o.valor, _normalizar(o.rotulo)) for o in self._opcoes if o.valor]
@@ -79,24 +65,14 @@ class ListaOpcoes(Sequence[Opcao]):
         raise OpcaoNaoEncontrada(rotulo_campo, texto)
 
     def resolver_todos(self, texto: str, descricao: str | None = None) -> list[str]:
-        """Como ``resolver``, mas com todas as opções de rótulo idêntico.
-
-        O SGP aceita nomes repetidos (quatro POPs "Natal-RN", por exemplo). Num
-        filtro, quem escolhe o nome quer todos eles; ficar só com o primeiro
-        deixaria de fora, sem aviso, os contratos dos outros.
-        """
+        # o SGP aceita nomes repetidos (vários POPs "Natal-RN"); no filtro entram todos
         alvo = _normalizar(texto)
         exatas = [o.valor for o in self._opcoes if o.valor and _normalizar(o.rotulo) == alvo]
         return exatas or [self.resolver(texto, descricao)]
 
-    def resolver_se_preenchido(self, texto: str, descricao: str | None = None) -> str | None:
-        return self.resolver(texto, descricao) if texto else None
-
 
 @dataclass
 class Formulario:
-    """Campos e opções de um formulário, na ordem em que aparecem na página."""
-
     campos: list[tuple[str, str]] = field(default_factory=list)
     opcoes: dict[str, ListaOpcoes] = field(default_factory=dict)
 
@@ -118,12 +94,6 @@ class Formulario:
 
     def preencher(self, alteracoes: Mapping[str, ValorCampo],
                   extras: Iterable[tuple[str, str]] = ()) -> list[tuple[str, str]]:
-        """Pares a enviar: valores da página com ``alteracoes`` aplicadas.
-
-        Cada chave de ``alteracoes`` substitui o campo inteiro; lista representa
-        um select múltiplo e ``None`` retira o campo (caixa desmarcada).
-        ``extras`` são acrescentados no fim, como as linhas de um formset.
-        """
         dados = [(nome, valor) for nome, valor in self.campos if nome not in alteracoes]
         for nome, valor in alteracoes.items():
             if valor is None:
@@ -135,8 +105,6 @@ class Formulario:
 
 
 class _LeitorFormulario(HTMLParser):
-    """Extrai inputs, selects e textareas como o navegador os enviaria."""
-
     _TIPOS_IGNORADOS = {"submit", "button", "image", "file", "reset"}
 
     def __init__(self):
@@ -210,7 +178,7 @@ class _LeitorFormulario(HTMLParser):
 
 _LISTA_ERROS = re.compile(r'<ul class="errorlist[^"]*">(.*?)</ul>', re.S)
 _ITEM = re.compile(r"<li>(.*?)</li>", re.S)
-# telas antigas do SGP: <strong>Campo</strong> &nbsp; <span class="fielderror">mensagem</span>
+# telas antigas: <strong>Campo</strong> &nbsp; <span class="fielderror">mensagem</span>
 _ERRO_DE_CAMPO = re.compile(r'<strong>\s*([^<]+?)\s*</strong>\s*(?:&nbsp;\s*)*<span class="fielderror">(.*?)</span>', re.S)
 _AVISO = re.compile(r'class="[^"]*(?:errornote|alert-danger|alert-error)[^"]*"[^>]*>(.*?)</', re.S)
 _TAG = re.compile(r"<[^>]+>")
@@ -218,7 +186,6 @@ _GENERICAS = {"Por favor, corrija o erro abaixo.", "Por favor, corrija os erros 
 
 
 def extrair_erros(html: str) -> list[str]:
-    """Mensagens de validação exibidas pelo SGP após um envio recusado."""
     mensagens = [item for bloco in _LISTA_ERROS.findall(html) for item in _ITEM.findall(bloco)]
     mensagens += [f"{campo}: {mensagem}" for campo, mensagem in _ERRO_DE_CAMPO.findall(html)]
     mensagens += _AVISO.findall(html)

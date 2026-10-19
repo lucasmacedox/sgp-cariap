@@ -1,10 +1,4 @@
-"""API local consumida pela interface.
-
-As rotas são métodos de ``ApiAssistente`` marcados com ``@rota``. Cada rota
-recebe um dicionário (corpo JSON ou parâmetros da URL) e devolve um dicionário
-serializável. Erros esperados são ``ErroAssistente``; o servidor os converte
-em respostas 400 com a mensagem.
-"""
+"""API local da interface. Rotas são métodos marcados com ``@rota`` que recebem e devolvem ``dict``."""
 
 from __future__ import annotations
 
@@ -24,7 +18,6 @@ _ATRIBUTO_ROTA = "_rota_http"
 
 
 def rota(metodo: str, caminho: str):
-    """Marca um método de ``ApiAssistente`` como rota HTTP."""
     def marcar(funcao):
         setattr(funcao, _ATRIBUTO_ROTA, (metodo.upper(), caminho))
         return funcao
@@ -36,14 +29,11 @@ class RotaInexistente(ErroAssistente):
 
 
 class ApiAssistente:
-    """Estado da sessão (conexão atual e execuções) e as operações expostas."""
-
     def __init__(self, ambiente: Ambiente, *, conectar: FabricaAssistente = AssistenteCadastro.conectar,
                  tarefas: GerenciadorTarefas | None = None):
         self._ambiente = ambiente
         self._conectar = conectar
-        self._tarefas = tarefas or GerenciadorTarefas(
-            RegistroExecucoes(ambiente.execucoes, ambiente.retencao_dias))
+        self._tarefas = tarefas or GerenciadorTarefas(RegistroExecucoes(ambiente.execucoes))
         self._assistente: AssistenteCadastro | None = None
         self._rotas: dict[tuple[str, str], Manipulador] = {
             getattr(funcao, _ATRIBUTO_ROTA): getattr(self, nome)
@@ -62,8 +52,6 @@ class ApiAssistente:
         if self._assistente is None:
             raise ErroEstado("conecte ao SGP primeiro")
         return self._assistente
-
-    # --- conexão --------------------------------------------------------------------
 
     @rota("POST", "/api/conectar")
     def conectar(self, dados: dict) -> dict:
@@ -88,7 +76,6 @@ class ApiAssistente:
         return {"conectado": False}
 
     def _sem_execucao(self, acao: str) -> None:
-        """A execução usa a conexão atual até o fim; trocar no meio confundiria quem acompanha."""
         if self._tarefas.em_andamento():
             raise ErroEstado(f"há uma execução em andamento; pare a execução antes de {acao}")
 
@@ -96,14 +83,9 @@ class ApiAssistente:
         return {"conectado": True, "url": self.assistente.url, "usuario": self.assistente.usuario,
                 "versao_sgp": self.assistente.versao_sgp}
 
-    # --- planos ---------------------------------------------------------------------
-
     @rota("GET", "/api/planos")
     def planos(self, dados: dict) -> dict:
-        """Planos de internet e planos de serviço (grupo TV) cadastrados no SGP."""
         return self.assistente.planos(reler=bool(dados.get("reler")))
-
-    # --- serviços nos clientes (lote) ------------------------------------------------
 
     @rota("GET", "/api/lote/opcoes")
     def lote_opcoes(self, dados: dict) -> dict:
@@ -116,12 +98,12 @@ class ApiAssistente:
 
     @rota("POST", "/api/lote/iniciar")
     def lote_iniciar(self, dados: dict) -> dict:
-        if self._tarefas.em_andamento():  # evita montar o lote à toa; a garantia está em iniciar
+        if self._tarefas.em_andamento():
             raise ErroEstado("já há uma execução em andamento")
         assistente = self.assistente
         config = Configuracao.de_dict(dados.get("config"))
         selecionados = {str(c) for c in dados.get("selecionados") or []}
-        # monta de novo no servidor: quem recebeu os serviços desde a busca não é processado duas vezes
+        # remonta para não repetir contratos que já receberam os serviços desde a busca
         itens = assistente.montar_lote(config, selecionados)
         pendentes = sum(i.a_fazer for i in itens)
         if not pendentes:

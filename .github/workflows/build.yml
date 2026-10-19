@@ -1,9 +1,3 @@
-# Qualidade (ruff, mypy) e testes em Windows, macOS e Linux a cada push e pull request.
-# Executáveis (Windows, macOS Apple Silicon e Intel, Linux) a cada tag "v*",
-# publicados num Release com SHA256SUMS.txt, ou manualmente em Actions → build → Run workflow.
-#
-# As ações de terceiros ficam fixadas pelo commit (não pela tag, que pode ser movida);
-# o comentário ao lado diz a versão. Para atualizar: git ls-remote https://github.com/<ação> refs/tags/<versão>
 name: build
 
 on:

@@ -1,10 +1,3 @@
-// Dicas flutuantes: qualquer elemento com data-dica mostra o texto num balão.
-//
-// No mouse, o balão aparece ao passar por cima (com um pequeno atraso) e ao focar
-// pelo teclado. No toque, o botão ⓘ (.info) abre e fecha o balão; tocar fora fecha.
-// Um único balão é reaproveitado e posicionado em coordenadas da janela, para não
-// ser cortado por painéis com rolagem.
-
 const ATRASO_MS = 350;
 const MARGEM = 8;
 
@@ -65,7 +58,6 @@ export class Dicas {
     this.balao.hidden = true;
   }
 
-  /** Acima do elemento quando cabe; senão, abaixo. Nunca passa das bordas da janela. */
   #posicionar() {
     const r = this.alvo.getBoundingClientRect();
     const b = this.balao.getBoundingClientRect();
@@ -74,6 +66,5 @@ export class Dicas {
     const esquerda = Math.min(Math.max(MARGEM, r.left + r.width / 2 - b.width / 2), window.innerWidth - b.width - MARGEM);
     this.balao.style.top = `${topo}px`;
     this.balao.style.left = `${esquerda}px`;
-    this.balao.dataset.lado = acima ? 'acima' : 'abaixo';
   }
 }

@@ -1,10 +1,8 @@
-// Troca de etapas, estado de cada etapa no menu lateral e botões Anterior / Próximo.
-
 import { problemasDoMapeamento } from './dominio.js';
 import { Eventos } from './estado.js';
 import { $, $$, plural } from './util.js';
 
-export const ETAPAS = ['conexao', 'mapeamento', 'lote'];
+const ETAPAS = ['conexao', 'mapeamento', 'lote'];
 
 export class Navegacao {
   constructor(estado) {
@@ -66,7 +64,6 @@ export class Navegacao {
     this.#marcar('conexao', '', '', this.estado.conectado);
     this.#marcar('mapeamento', problemas ? plural(problemas, 'pendência', 'pendências') : planos ? plural(planos, 'plano', 'planos') : '',
       problemas ? 'erro' : '', planos > 0 && !problemas);
-    this.#marcar('lote', '', '', false);
     const vazio = $('[data-vazio="grupos"]');
     if (vazio) vazio.hidden = config.grupos.length > 0;
   }

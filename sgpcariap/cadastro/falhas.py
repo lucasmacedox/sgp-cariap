@@ -1,10 +1,4 @@
-"""Classificação das falhas do lote: causa, orientação e alcance.
-
-Cada erro vira uma ``Falha`` com uma causa estável (usada pela interface para
-agrupar), um título curto e o que fazer. Falhas *gerais* (SGP fora do ar,
-sessão recusada, falta de permissão) atingiriam todos os contratos seguintes;
-as demais dizem respeito só ao contrato em que ocorreram.
-"""
+"""Classificação das falhas do lote. Falhas gerais afetariam todos os contratos seguintes."""
 
 from __future__ import annotations
 
@@ -46,7 +40,7 @@ DIAGNOSTICOS: dict[Causa, Diagnostico] = {
     Causa.OUTRA: Diagnostico("Erro inesperado", "Veja a mensagem e o registro da execução."),
 }
 
-# da mais específica para a mais genérica (ErroPlanoIndisponivel e as demais derivam de ErroSGP)
+# da mais específica para a mais genérica
 _POR_TIPO: tuple[tuple[type[Exception], Causa], ...] = (
     (ErroPlanoIndisponivel, Causa.POP),
     (ErroIdentificacao, Causa.IDENTIFICACAO),

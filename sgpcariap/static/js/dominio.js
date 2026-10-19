@@ -1,9 +1,7 @@
-// Estrutura da configuração de um provedor (mesmo formato de sgpcariap.dominio.Configuracao).
-
 export const VERSAO_CONFIG = 2;
 
-export const PADROES = Object.freeze({ grupo_tv: 'TV', modo_aquisicao: 'Comodato' });
-export const LOTE = Object.freeze({
+const PADROES = Object.freeze({ grupo_tv: 'TV', modo_aquisicao: 'Comodato' });
+const LOTE = Object.freeze({
   planos: [], pops: [], status_contrato: ['Ativo'], ativar: true, validar_cadastro: true, pausa_segundos: 2, limite: '',
 });
 
@@ -16,7 +14,7 @@ export const novaConfiguracao = (provedor = 'Novo provedor') => ({
   lote: structuredClone(LOTE),
 });
 
-/** Completa campos ausentes; arquivos da versão anterior mantêm só conexão e nome. */
+// arquivos da versão anterior só têm conexão e nome
 export function normalizarConfiguracao(dados, provedor) {
   const base = novaConfiguracao(provedor || dados?.provedor);
   return {
@@ -29,12 +27,7 @@ export function normalizarConfiguracao(dados, provedor) {
   };
 }
 
-export const novoGrupo = (nome, planos = []) => ({ nome, planos, servicos: [] });
-
-/** Grupo em que o plano está (ou undefined). */
-export const grupoDoPlano = (config, rotulo) => config.grupos.find((g) => g.planos.includes(rotulo));
-
-/** Inconsistências que impedem aplicar nos clientes (mesmas regras do servidor). */
+// mesmas regras do servidor
 export function problemasDoMapeamento(config) {
   const problemas = [];
   const dono = new Map();
@@ -53,17 +46,13 @@ export function problemasDoMapeamento(config) {
 
 const chaveServicos = (servicos) => [...servicos].map((s) => s.toLowerCase()).sort().join('|');
 
-/** Plano de internet (rótulo) → serviços que ele tem hoje no mapeamento. */
 export function servicosPorPlano(config) {
   const mapa = new Map();
   for (const grupo of config.grupos) for (const plano of grupo.planos) mapa.set(plano, [...grupo.servicos]);
   return mapa;
 }
 
-/**
- * Refaz os grupos a partir de "plano → serviços": planos com exatamente os mesmos
- * serviços ficam juntos. Um grupo que mantém o mesmo conjunto de serviços conserva o nome.
- */
+// planos com os mesmos serviços ficam juntos; o grupo que mantém o conjunto conserva o nome
 export function reagrupar(config, mapa) {
   const nomes = new Map(config.grupos.map((g) => [chaveServicos(g.servicos), g.nome]));
   const grupos = new Map();

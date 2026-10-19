@@ -1,5 +1,3 @@
-// Etapa 1: conexão com o SGP do provedor atual.
-
 import { Eventos } from '../estado.js';
 import { $, $$, ocupado, status } from '../util.js';
 import { Tela } from './base.js';
@@ -71,17 +69,7 @@ export class TelaConexao extends Tela {
   }
 
   async desconectar() {
-    try {
-      await this.api.desconectar();
-    } catch (erro) {
-      // com uma execução em andamento o servidor recusa; a conexão continua valendo
-      if (!erro.message.startsWith('O assistente não responde')) {
-        this.avisos.erro(erro.message);
-        return;
-      }
-    }
-    this.estado.definirConexao(null);
-    status(this.mensagem, '');
+    if (await this.encerrarConexao()) status(this.mensagem, '');
   }
 
   renderizarConexao() {

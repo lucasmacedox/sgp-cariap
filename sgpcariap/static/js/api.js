@@ -1,6 +1,4 @@
-// Cliente da API local (sgpcariap.web.api).
-
-/** Mensagens do servidor chegam em minúsculas; na tela, começam com maiúscula. */
+// o servidor manda as mensagens em minúsculas
 export class ErroApi extends Error {
   constructor(mensagem) {
     super(mensagem.charAt(0).toUpperCase() + mensagem.slice(1));
@@ -8,12 +6,12 @@ export class ErroApi extends Error {
 }
 
 export class ClienteApi {
-  async get(caminho, parametros = {}) {
+  #get(caminho, parametros = {}) {
     const consulta = new URLSearchParams(parametros).toString();
     return this.#requisitar(consulta ? `${caminho}?${consulta}` : caminho, {});
   }
 
-  async post(caminho, corpo = {}) {
+  #post(caminho, corpo = {}) {
     return this.#requisitar(caminho, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -33,13 +31,13 @@ export class ClienteApi {
     return dados;
   }
 
-  status() { return this.get('/api/status'); }
-  conectar(dados) { return this.post('/api/conectar', dados); }
-  desconectar() { return this.post('/api/desconectar'); }
-  planos(reler = false) { return this.get('/api/planos', reler ? { reler: 1 } : {}); }
-  loteOpcoes() { return this.get('/api/lote/opcoes'); }
-  loteMontar(config) { return this.post('/api/lote/montar', { config }); }
-  loteIniciar(config, selecionados) { return this.post('/api/lote/iniciar', { config, selecionados }); }
-  tarefa(id) { return this.get('/api/job', { id }); }
-  controlarTarefa(id, acao) { return this.post('/api/job/controle', { id, acao }); }
+  status() { return this.#get('/api/status'); }
+  conectar(dados) { return this.#post('/api/conectar', dados); }
+  desconectar() { return this.#post('/api/desconectar'); }
+  planos(reler = false) { return this.#get('/api/planos', reler ? { reler: 1 } : {}); }
+  loteOpcoes() { return this.#get('/api/lote/opcoes'); }
+  loteMontar(config) { return this.#post('/api/lote/montar', { config }); }
+  loteIniciar(config, selecionados) { return this.#post('/api/lote/iniciar', { config, selecionados }); }
+  tarefa(id) { return this.#get('/api/job', { id }); }
+  controlarTarefa(id, acao) { return this.#post('/api/job/controle', { id, acao }); }
 }

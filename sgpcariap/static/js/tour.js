@@ -1,11 +1,7 @@
-// Tour guiado com driver.js (carregado em /vendor como script clássico).
-// Abre sozinho na primeira visita; depois, pelo botão "?" de cada etapa ou pelo menu de ajuda.
-
 import { armazenamento } from './util.js';
 
 const CHAVE_VISTO = 'sgpcariap.tour.v1';
 
-/** Passos por etapa: elemento destacado, título, texto e lado do balão. */
 const ROTEIRO = {
   conexao: [
     ['#passos', 'Três etapas', 'Conectar, escolher os serviços de cada plano e aplicar nos clientes. O assistente só lê os planos do SGP.', 'right'],
@@ -27,7 +23,6 @@ const ROTEIRO = {
 };
 
 export class TourGuiado {
-  /** @param {import('./navegacao.js').Navegacao} navegacao */
   constructor(navegacao) {
     this.navegacao = navegacao;
     this.criarDriver = window.driver?.js?.driver;

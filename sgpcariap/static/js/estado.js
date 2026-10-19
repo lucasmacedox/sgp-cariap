@@ -1,6 +1,4 @@
-// Estado da aplicação: perfis de provedor, conexão atual e última prévia.
-//
-// As telas não conversam entre si; alteram o estado e reagem aos eventos:
+// eventos:
 //   alterada    a configuração do provedor atual mudou (edição)
 //   recarregada a configuração foi trocada inteira (outro provedor, importação)
 //   catalogo    conectou, desconectou ou releu o SGP
@@ -26,15 +24,15 @@ export class Estado extends EventTarget {
   #perfis;
   #gravarAdiado = adiar(() => armazenamento.gravar(CHAVE_PERFIS, this.#perfis), 250);
 
-  /** Conexão atual: { url, usuario, catalogo } ou null. */
+  // { url, usuario, catalogo } ou null
   conexao = null;
-  /** Planos lidos do SGP conectado: { planos_internet, planos_servico }. */
+  // { planos_internet, planos_servico }
   planos = null;
 
   constructor() {
     super();
     this.#perfis = Estado.#carregar();
-    // a gravação é adiada para agrupar edições; ao fechar ou recarregar a página, grava na hora
+    // a gravação é adiada; ao sair da página, grava na hora
     window.addEventListener('pagehide', () => armazenamento.gravar(CHAVE_PERFIS, this.#perfis));
   }
 
@@ -59,10 +57,6 @@ export class Estado extends EventTarget {
 
   #emitir(evento) { this.dispatchEvent(new Event(evento)); }
 
-  /** Avisa as telas que dependem de uma parte específica da configuração. */
-  notificar(evento) { this.#emitir(evento); }
-
-  /** Registra uma edição na configuração atual. */
   alterar() {
     this.#gravarAdiado();
     this.#emitir(Eventos.ALTERADA);
@@ -108,7 +102,6 @@ export class Estado extends EventTarget {
     this.#emitir(Eventos.PROVEDORES);
   }
 
-  /** Exclui o provedor atual; devolve false se for o único. */
   excluirProvedor() {
     if (this.provedores.length === 1) return false;
     delete this.#perfis.perfis[this.provedor];

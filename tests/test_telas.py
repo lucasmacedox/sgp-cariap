@@ -1,8 +1,4 @@
-"""Telas do SGP contra páginas que reproduzem a estrutura do SGP (Ver. 1.0.251).
-
-Se uma atualização do SGP mudar uma dessas telas, é aqui que o teste deve
-quebrar primeiro: atualize a página de exemplo e a classe correspondente.
-"""
+"""Telas contra páginas com a estrutura do SGP 1.0.251."""
 
 import unittest
 from decimal import Decimal
@@ -47,8 +43,6 @@ class ClienteFalso:
         return self.destino
 
 
-# --- listagem de planos ---------------------------------------------------------------
-
 LISTA_INTERNET = """<table>
 <tr><th>#</th><th>Descrição</th><th>Grupo</th><th>Preço</th><th>Ativo</th><th>Total</th><th>Total</th></tr>
 <tr><td><a href="/admin/plano/111/edit/">111</a></td><td>500 mega Fidelidade</td><td>Fibra</td>
@@ -71,10 +65,10 @@ class TestListaPlanos(unittest.TestCase):
             "/admin/plano/internet/": LISTA_INTERNET, "/admin/plano/tv/": LISTA_TV,
             "/admin/plano/352/edit/": f"<form>{pops}</form>", "/admin/plano/353/edit/": "<form></form>"}))
 
-    def test_internet_le_preco_clientes_e_o_primeiro_total(self):
+    def test_internet_le_preco_e_clientes(self):
         primeiro, segundo = self.tela.internet()
-        self.assertEqual((primeiro.id, primeiro.nome, primeiro.grupo, primeiro.preco, primeiro.ativos, primeiro.total),
-                         ("111", "500 mega Fidelidade", "Fibra", Decimal("1099.90"), 12, 15))
+        self.assertEqual((primeiro.id, primeiro.nome, primeiro.grupo, primeiro.preco, primeiro.ativos),
+                         ("111", "500 mega Fidelidade", "Fibra", Decimal("1099.90"), 12))
         self.assertEqual((segundo.nome, segundo.preco, segundo.ativos), ("Plano & Cia", None, 0))
 
     def test_tv_traz_o_gateway(self):
@@ -85,8 +79,6 @@ class TestListaPlanos(unittest.TestCase):
         self.assertEqual(self.tela.pops("352"), ["19", "20"])
         self.assertEqual(self.tela.pops("353"), [])
 
-
-# --- relatório de serviços ---------------------------------------------------------------
 
 FORM_RELATORIO = "<form>" + "".join([
     _select("tipo_servico", [("1", "Internet"), ("2", "TV")]),
@@ -153,8 +145,6 @@ class TestRelatorioServicos(unittest.TestCase):
                          (["500 mega Fidelidade", "1GB"], ["Natal-RN", "Mossoró-RN"]))
 
 
-# --- serviço de TV no contrato --------------------------------------------------------------
-
 FORM_TV = ('<form><a href="/admin/cliente/77/">cliente</a>'
            + _select("servicot-grupo", [("5", "TV")])
            + _select("servicot-plano", [("352", "Cariap E-book Duo - R$ 9,90")])
@@ -211,16 +201,13 @@ class TestServicoTV(unittest.TestCase):
         self.assertEqual((endereco["cep"], endereco["numero"], endereco["bairro"]), ("59000-000", "10", ""))
 
     def test_ativar_le_a_situacao_na_pagina_devolvida(self):
-        pagina = ('<a href="/admin/servicos/tv/239/desativar">Desativar</a>'
-                  '<form><input name="servicot-gateway_id" value=" abc "></form>')
-        cliente = ClienteFalso({"/admin/servicos/tv/239/ativar": pagina})
-        situacao = TelaServicoTV(cliente).ativar("239")
-        self.assertEqual((situacao.ativo, situacao.gateway_id), (True, "abc"))
+        cliente = ClienteFalso({"/admin/servicos/tv/239/ativar": '<a href="/admin/servicos/tv/239/desativar">Desativar</a>'})
+        self.assertTrue(TelaServicoTV(cliente).ativar("239"))
         self.assertEqual(cliente.lidas, ["/admin/servicos/tv/239/ativar"])  # nunca desativar nem excluir
 
     def test_ativar_que_nao_pegou(self):
         cliente = ClienteFalso({"/admin/servicos/tv/239/ativar": '<a href="/admin/servicos/tv/239/ativar">Ativar</a>'})
-        self.assertFalse(TelaServicoTV(cliente).ativar("239").ativo)
+        self.assertFalse(TelaServicoTV(cliente).ativar("239"))
 
 
 if __name__ == "__main__":

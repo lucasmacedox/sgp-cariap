@@ -1,5 +1,3 @@
-"""Ponto de entrada: ``python -m sgpcariap`` ou o executável empacotado."""
-
 from __future__ import annotations
 
 import argparse
@@ -25,7 +23,7 @@ def _argumentos(argv: list[str] | None) -> argparse.Namespace:
 
 
 def _console_tolerante() -> None:
-    """Evita falha ao imprimir acentos em consoles que não usam UTF-8 (Windows)."""
+    # console do Windows sem UTF-8
     for fluxo in (sys.stdout, sys.stderr):
         try:
             fluxo.reconfigure(errors="replace")  # type: ignore[union-attr]

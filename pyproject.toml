@@ -5,13 +5,12 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "sgpcariap"
 dynamic = ["version"]
-description = "Assistente de configuração do SGP para o Cariap: produtos, planos, kits e detalhamento de plano."
+description = "Aplica os serviços do Cariap nos contratos do SGP pela interface web."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = []
 
 [project.optional-dependencies]
-executavel = ["pyinstaller>=6.6", "certifi"]
 dev = ["ruff>=0.6", "mypy>=1.10", "coverage>=7"]
 
 [project.scripts]
@@ -32,11 +31,7 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "B", "UP", "SIM", "BLE"]
-ignore = [
-    "SIM105",  # try/except/pass explícito é mais legível que contextlib.suppress aqui
-    "SIM108",  # if/else em vez de ternário longo
-    "B905",    # zip sem strict: cabeçalho e células de tabela podem ter tamanhos diferentes de propósito
-]
+ignore = ["SIM105", "SIM108", "B905"]
 
 [tool.mypy]
 python_version = "3.10"

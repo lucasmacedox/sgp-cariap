@@ -1,8 +1,3 @@
-/* Assistente SGP · Cariap
-   Mobile first: as regras sem media query valem para o celular; as faixas maiores só
-   acrescentam. Faixas: 640px (duas colunas em formulários), 768px (tabelas como
-   tabelas), 1024px (barra lateral), 1200px (vínculo lado a lado). */
-
 @font-face { font-family: "Plex Sans"; src: url("/vendor/fonts/ibm-plex-sans-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-display: swap; }
 @font-face { font-family: "Plex Sans"; src: url("/vendor/fonts/ibm-plex-sans-latin-500-normal.woff2") format("woff2"); font-weight: 500; font-display: swap; }
 @font-face { font-family: "Plex Sans"; src: url("/vendor/fonts/ibm-plex-sans-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
@@ -13,10 +8,7 @@
 @font-face { font-family: "Poppins"; src: url("/vendor/fonts/poppins-latin-600-normal.woff2") format("woff2"); font-weight: 600; font-display: swap; }
 @font-face { font-family: "Poppins"; src: url("/vendor/fonts/poppins-latin-700-normal.woff2") format("woff2"); font-weight: 700; font-display: swap; }
 
-/* Cores do Cariap (cariap.com.br): preto quase puro, laranja #FF4F00 → #FE8A00 e
-   títulos em Poppins. O laranja vivo vai em superfícies (botão principal, marca) com
-   texto escuro; em texto sobre fundo claro usa-se um laranja mais fechado, para manter
-   o contraste mínimo de 4,5:1. A barra lateral é sempre escura, como o site. */
+/* laranja vivo só em superfícies; em texto sobre fundo claro, o tom fechado mantém o contraste 4,5:1 */
 :root {
   color-scheme: light;
   --marca-1: #ff4f00;
@@ -34,8 +26,6 @@
   --texto-2: #57544d;
   --texto-3: #85817a;
   --destaque: #b33a00;
-  --destaque-hover: #8f2e00;
-  --destaque-texto: #ffffff;
   --destaque-suave: #ffede2;
   --ok: #2d6a2f;
   --ok-suave: #e5f0e1;
@@ -54,37 +44,19 @@
   --sombra-flutuante: 0 10px 30px rgba(16, 16, 16, .16), 0 1px 3px rgba(16, 16, 16, .08);
 }
 
-/* tema escuro: o mesmo preto do site */
+/* tema escuro */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root {
     color-scheme: dark;
     --fundo: #101010; --lateral: #0a0a0a; --superficie: #181814; --superficie-2: #1f1f1b;
     --linha: #2a2a25; --linha-forte: #3d3d36; --texto: #f5f5f2; --texto-2: #b5b3ac; --texto-3: #85837c;
-    --destaque: #ff7a2e; --destaque-hover: #ff9350; --destaque-texto: #101010; --destaque-suave: #2a1a10;
+    --destaque: #ff7a2e; --destaque-suave: #2a1a10;
     --ok: #7cc27a; --ok-suave: #1d2b1c; --aviso: #f2b84b; --aviso-suave: #33270f; --erro: #f08a80; --erro-suave: #3a1c19;
     --foco: #ff8a3d; --sombra: none; --sombra-flutuante: 0 10px 30px rgba(0, 0, 0, .55);
   }
 }
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --fundo: #101010; --lateral: #0a0a0a; --superficie: #181814; --superficie-2: #1f1f1b;
-  --linha: #2a2a25; --linha-forte: #3d3d36; --texto: #f5f5f2; --texto-2: #b5b3ac; --texto-3: #85837c;
-  --destaque: #ff7a2e; --destaque-hover: #ff9350; --destaque-texto: #101010; --destaque-suave: #2a1a10;
-  --ok: #7cc27a; --ok-suave: #1d2b1c; --aviso: #f2b84b; --aviso-suave: #33270f; --erro: #f08a80; --erro-suave: #3a1c19;
-  --foco: #ff8a3d; --sombra: none; --sombra-flutuante: 0 10px 30px rgba(0, 0, 0, .55);
-}
 
-/* barra lateral: sempre escura; os componentes dentro dela herdam estes tokens */
-.lateral {
-  color-scheme: dark;
-  --superficie: #1a1a16; --superficie-2: #22221d; --linha: #2c2c26; --linha-forte: #45453c;
-  --texto: #f5f5f2; --texto-2: #b5b3ac; --texto-3: #8a8880;
-  --destaque: #ff7a2e; --destaque-hover: #ff9350; --destaque-texto: #101010; --destaque-suave: #2e1b0f;
-  --ok: #7cc27a; --ok-suave: #1d2b1c; --sombra-flutuante: 0 10px 30px rgba(0, 0, 0, .6);
-  color: var(--texto);
-}
-
-/* --- base ------------------------------------------------------------------ */
+/* base */
 
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -102,14 +74,17 @@ a { color: var(--destaque); }
 .ic { width: 16px; height: 16px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 :focus-visible { outline: 2px solid var(--foco); outline-offset: 2px; }
 
-/* --- estrutura --------------------------------------------------------------
-   Celular: barra superior (marca e atalhos, provedor, etapas) e conteúdo abaixo.
-   A partir de 1024px a barra vira coluna lateral fixa. */
-
+/* estrutura */
 .app { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+/* barra lateral: sempre escura */
 .lateral {
+  color-scheme: dark;
+  --superficie: #1a1a16; --superficie-2: #22221d; --linha: #2c2c26; --linha-forte: #45453c;
+  --texto: #f5f5f2; --texto-2: #b5b3ac; --texto-3: #8a8880;
+  --destaque: #ff7a2e; --destaque-suave: #2e1b0f;
+  --ok: #7cc27a; --ok-suave: #1d2b1c; --sombra-flutuante: 0 10px 30px rgba(0, 0, 0, .6);
   display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "marca rodape" "provedor provedor" "passos passos";
-  align-items: center; gap: 12px; padding: 12px 16px; background: var(--lateral); border-bottom: 1px solid var(--linha);
+  align-items: center; gap: 12px; padding: 12px 16px; color: var(--texto); background: var(--lateral); border-bottom: 1px solid var(--linha);
 }
 main { display: flex; flex-direction: column; flex: 1; min-width: 0; width: 100%; max-width: 1320px; padding: 20px 16px 0; }
 main section { display: flex; flex-direction: column; gap: 16px; flex: 1; min-width: 0; }
@@ -148,16 +123,14 @@ main section { display: flex; flex-direction: column; gap: 16px; flex: 1; min-wi
 }
 .passos a i { display: none; font-style: normal; font-size: 12px; color: var(--texto-3); }
 .passos a i.erro { color: var(--erro); }
-.passos a i.ok { color: var(--ok); }
 .passos a:hover { color: var(--texto); background: color-mix(in srgb, var(--superficie) 60%, transparent); }
 .passos a.feito b { background: var(--destaque-suave); border-color: transparent; color: var(--destaque); }
-.passos a.ativo { color: var(--texto); font-weight: 600; background: var(--superficie); box-shadow: 0 0 0 1px var(--linha); }
+.passos a.ativo { color: var(--texto); font-weight: 600; background: var(--superficie); box-shadow: inset 0 -2px 0 var(--marca-1), 0 0 0 1px var(--linha); }
 .passos a.ativo b { background: var(--marca-degrade); border-color: transparent; color: var(--marca-texto); font-weight: 600; }
-.passos a.ativo { box-shadow: inset 0 -2px 0 var(--marca-1), 0 0 0 1px var(--linha); }
 
 /* atalhos (importar, exportar, ajuda): só ícones no celular */
 .lateral-rodape { grid-area: rodape; display: flex; align-items: center; gap: 2px; }
-label.link-lateral, .link-lateral {
+.link-lateral {
   display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 9px; min-height: 36px; padding: 7px 9px;
   border: 0; border-radius: var(--raio-p); background: none; color: var(--texto-2);
   font: inherit; font-size: 13px; font-weight: 400; text-align: left; cursor: pointer;
@@ -176,18 +149,17 @@ label.link-lateral, .link-lateral {
 .menu-rodape { padding: 6px 9px 3px; font-size: 11px; color: var(--texto-3); }
 
 /* cabeçalho de etapa: título em cima, ações embaixo; lado a lado quando couber */
-.cab { display: flex; flex-direction: column; align-items: stretch; gap: 12px; }
-.cab > div:first-child { position: relative; max-width: 680px; }
-.cab h1 { font-size: 20px; line-height: 1.25; }
-.cab-desc { margin-top: 6px; color: var(--texto-2); }
+.cab { position: relative; display: flex; flex-direction: column; align-items: stretch; gap: 12px; padding-right: 36px; }
+.cab > div:first-child { max-width: 680px; }
+.cab h1 { font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
+.cab-desc { margin-top: 6px; color: var(--texto-2); font-size: 14.5px; }
 .cab-acoes { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .cab > .btn-icone { position: absolute; top: 0; right: 0; }
-.cab { position: relative; padding-right: 36px; }
 .cab-acoes .btn { flex: 1 1 auto; }
 
 /* rodapé de navegação entre etapas */
 .rodape-etapas {
-  position: static; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
   margin-top: 24px; padding: 12px 0 calc(14px + env(safe-area-inset-bottom));
   background: linear-gradient(to bottom, transparent, var(--fundo) 30%);
 }
@@ -195,18 +167,19 @@ label.link-lateral, .link-lateral {
 .rodape-etapas .btn[hidden] { display: inline-flex !important; visibility: hidden; }
 .rodape-etapas .btn span { overflow: hidden; text-overflow: ellipsis; }
 
-/* --- componentes ------------------------------------------------------------- */
+/* componentes */
 
 .painel { min-width: 0; padding: 16px; background: var(--superficie); border: 1px solid var(--linha); border-radius: var(--raio); box-shadow: var(--sombra); }
-.painel-titulo { font-size: 13px; font-weight: 600; color: var(--texto-2); margin-bottom: 14px; }
-.titulo-secao { font-size: 13px; font-weight: 600; color: var(--texto-2); margin: 0 0 10px; }
+.painel-titulo, .titulo-secao { font-size: 13px; font-weight: 600; color: var(--texto-2); }
+.painel-titulo { margin-bottom: 14px; }
+.titulo-secao { margin: 0 0 10px; }
 .subtitulo { font-size: 12px; font-weight: 500; color: var(--texto-2); margin-bottom: 6px; }
 fieldset.painel { margin: 0; display: flex; flex-direction: column; gap: 14px; }
 legend { float: left; width: 100%; padding: 0; margin-bottom: 2px; font-weight: 600; font-size: 15px; }
 legend + * { clear: both; }
 .vazio { padding: 28px 16px; color: var(--texto-2); text-align: center; font-size: 13.5px; }
 .nota { color: var(--texto-2); font-size: 12.5px; }
-.nota-aviso { margin-top: 2px; font-size: 12px; color: var(--aviso); }
+.nota-aviso { display: flex; align-items: center; gap: 2px; margin-top: 2px; font-size: 12px; color: var(--aviso); }
 .aviso { border-color: color-mix(in srgb, var(--aviso) 45%, var(--linha)); background: var(--aviso-suave); font-size: 13.5px; }
 .sutil { color: var(--texto-3); }
 
@@ -219,10 +192,8 @@ legend + * { clear: both; }
 
 /* campos */
 label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 500; color: var(--texto-2); }
-label.marcar { flex-direction: row; align-items: center; gap: 8px; padding: 6px 0; font-size: 13.5px; font-weight: 400; color: var(--texto); }
-label.marcar { flex-wrap: wrap; }
-label.marcar small { flex-basis: 100%; padding-left: 26px; color: var(--texto-3); font-size: 12px; }
-input, select, textarea {
+label.marcar { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 8px; padding: 6px 0; font-size: 13.5px; font-weight: 400; color: var(--texto); }
+input, select {
   font: inherit; font-size: 16px; color: var(--texto); background: var(--superficie);   /* 16px: o iOS não amplia ao focar */
   border: 1px solid var(--linha-forte); border-radius: var(--raio-p); padding: 8px 10px; min-width: 0; max-width: 100%;
   transition: border-color .12s, box-shadow .12s;
@@ -233,7 +204,6 @@ input:focus, select:focus { outline: none; border-color: var(--destaque); box-sh
 input[type="checkbox"] { flex: none; width: 18px; height: 18px; margin: 0; accent-color: var(--destaque); }
 input.direita { text-align: right; }
 .rotulo-campo { font-size: 12.5px; font-weight: 500; color: var(--texto-2); }
-.rotulo-campo small { font-weight: 400; color: var(--texto-3); margin-left: 6px; }
 .campo-filtro { display: flex; flex-direction: column; gap: 8px; }
 .campo-filtro .etiquetas:empty { display: none; }
 
@@ -247,7 +217,7 @@ input.direita { text-align: right; }
 .btn:hover { background: var(--superficie-2); border-color: var(--texto-3); }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
 .btn.primario { background: var(--marca-degrade); border-color: transparent; color: var(--marca-texto); font-weight: 600; }
-.btn.primario:hover:not(:disabled) { background: var(--marca-degrade); border-color: transparent; filter: brightness(1.06); box-shadow: 0 4px 14px rgba(255, 79, 0, .3); }
+.btn.primario:hover:not(:disabled) { filter: brightness(1.06); box-shadow: 0 4px 14px rgba(255, 79, 0, .3); }
 .btn.sutil { border-color: transparent; background: transparent; color: var(--texto-2); }
 .btn.sutil:hover { background: var(--superficie); color: var(--texto); border-color: var(--linha); }
 .btn.pequeno { min-height: 32px; padding: 0 10px; font-size: 12.5px; }
@@ -266,7 +236,7 @@ input.direita { text-align: right; }
 .msg.erro { color: var(--erro); }
 .msg.ok { color: var(--ok); }
 
-/* números (resumo da conexão e dos clientes) */
+/* números */
 .numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 12px 16px; margin: 0 0 18px; }
 .numeros div { display: flex; flex-direction: column-reverse; justify-content: flex-end; gap: 2px; min-width: 0; }
 .numeros dt { font-size: 12.5px; color: var(--texto-2); }
@@ -293,18 +263,17 @@ input.direita { text-align: right; }
 .opcao-livro.marcado { border-color: var(--destaque); background: var(--destaque-suave); }
 
 /* chave liga/desliga */
-.chave { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; align-items: start; padding: 8px 0; cursor: pointer; }
+.chave { display: grid; grid-template-columns: 38px minmax(0, 1fr); gap: 12px; align-items: center; padding: 4px 0; cursor: pointer; }
 .chave input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.chave-trilho { position: relative; width: 36px; height: 20px; margin-top: 1px; border-radius: 10px; background: var(--linha-forte); transition: background .15s; }
+.chave-trilho { position: relative; width: 36px; height: 20px; border-radius: 10px; background: var(--linha-forte); transition: background .15s; }
 .chave-trilho::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: transform .15s; }
 .chave input:checked + .chave-trilho { background: var(--marca-degrade); }
 .chave input:checked + .chave-trilho::after { transform: translateX(16px); }
 .chave input:focus-visible + .chave-trilho { outline: 2px solid var(--foco); outline-offset: 2px; }
 .chave-texto { display: flex; flex-direction: column; gap: 2px; }
 .chave-texto b { font-size: 13.5px; font-weight: 500; color: var(--texto); }
-.chave-texto small { font-size: 12.5px; color: var(--texto-2); font-weight: 400; }
 
-/* estado de um item (texto com ponto colorido; nunca só cor) */
+/* estado de um item: nunca só cor */
 .estado { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 500; white-space: nowrap; color: var(--texto-2); }
 .estado::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--texto-3); }
 .estado.ok { color: var(--ok); } .estado.ok::before { background: var(--ok); }
@@ -313,8 +282,7 @@ input.direita { text-align: right; }
 .estado.rodando::before { background: var(--destaque); animation: pulso 1s ease-in-out infinite; }
 @keyframes pulso { 50% { opacity: .3; } }
 .mensagem-erro { display: flex; align-items: center; flex-wrap: wrap; gap: 0 2px; margin-top: 3px; font-size: 12.5px; color: var(--erro); overflow-wrap: anywhere; }
-.mensagem-erro .info { width: 18px; height: 18px; color: var(--erro); }
-.mensagem-erro .info .ic { width: 13px; height: 13px; }
+.mensagem-erro .info { color: var(--erro); }
 
 /* barras sobre tabelas */
 .barra-tabela { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: 12px; border-bottom: 1px solid var(--linha); background: var(--superficie); }
@@ -329,16 +297,13 @@ input.direita { text-align: right; }
 .barra-selecao .espaco { display: none; }
 .barra-selecao select { flex: 1 1 100%; padding: 6px 8px; }
 
-/* --- planilha ----------------------------------------------------------------
-   Celular: cada linha vira um cartão (caixa à esquerda, dados empilhados, rótulo
-   vindo de data-th). A partir de 768px volta a ser tabela. */
-
+/* planilha: no celular cada linha vira um cartão */
 .painel.tabela-painel { padding: 0; overflow: hidden; }
 .planilha { width: 100%; border-collapse: collapse; }
 .planilha thead { display: none; }
 .planilha tbody, .planilha tr { display: block; }
 .planilha tbody tr {
-  display: grid; grid-template-columns: 44px minmax(0, 1fr); column-gap: 0; align-items: center;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); align-items: center;
   padding: 10px 12px 10px 0; border-bottom: 1px solid var(--linha);
 }
 .planilha tbody tr:last-child { border-bottom: 0; }
@@ -365,7 +330,7 @@ input.direita { text-align: right; }
 #tb-mapeamento thead th.caixa { display: flex; align-items: center; gap: 12px; width: auto; padding: 9px 14px; font-size: 12.5px; font-weight: 500; color: var(--texto-2); }
 #tb-mapeamento thead th.caixa::after { content: attr(data-movel); }
 
-/* --- registro da execução ------------------------------------------------------ */
+/* registro da execução */
 
 details summary { cursor: pointer; font-weight: 500; }
 .andamento { display: flex; flex-direction: column; gap: 12px; }
@@ -379,7 +344,6 @@ details summary { cursor: pointer; font-weight: 500; }
 .andamento-atual { display: flex; align-items: baseline; gap: 4px 8px; flex-wrap: wrap; min-height: 21px; font-size: 13.5px; }
 .andamento-atual .estado { white-space: normal; color: var(--texto); }
 .contadores { display: inline-flex; gap: 14px; flex-wrap: wrap; }
-@media (prefers-reduced-motion: reduce) { .progresso div { transition: none; } }
 
 /* resumo de falhas por causa */
 .falhas { display: flex; flex-direction: column; gap: 4px; border-color: color-mix(in srgb, var(--erro) 35%, var(--linha)); }
@@ -400,23 +364,22 @@ details summary { cursor: pointer; font-weight: 500; }
 .pendencias .alerta { color: var(--texto-3); }
 .pendencias a { font-size: 12px; color: var(--destaque); }
 
-/* botão aguardando: indicador girando antes do texto */
+/* botão aguardando */
 .btn.ocupado { cursor: progress; opacity: .85 !important; }
 .btn.ocupado::before {
   content: ""; width: 13px; height: 13px; flex: none; border-radius: 50%;
   border: 2px solid currentColor; border-right-color: transparent; animation: girar .7s linear infinite;
 }
 @keyframes girar { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .btn.ocupado::before { animation-duration: 2s; } }
 .registro { list-style: none; margin: 12px 0 0; padding: 0 4px 0 0; height: 240px; min-height: 96px; resize: vertical; overflow: auto; font: 12px/1.6 var(--mono); color: var(--texto-2); }
-.registro li { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; padding: 4px 0; }
+.registro li { display: grid; grid-template-columns: minmax(0, 1fr); padding: 4px 0; }
 .registro li + li { border-top: 1px dashed var(--linha); }
 .registro time { color: var(--texto-3); }
 .registro span { white-space: pre-wrap; overflow-wrap: anywhere; }
 .registro .nivel-erro span { color: var(--erro); }
 .registro .nivel-ok span { color: var(--ok); }
 
-/* --- serviços por plano ------------------------------------------------------- */
+/* serviços por plano */
 
 .mapeamento { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start; }
 .mp-planos, #mp-servicos { display: flex; flex-direction: column; max-height: 75vh; max-height: 75dvh; }
@@ -442,14 +405,14 @@ details summary { cursor: pointer; font-weight: 500; }
 .grupo .etiqueta.servico { background: var(--destaque-suave); border-color: transparent; }
 .grupo-rodape { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12.5px; color: var(--texto-2); }
 
-/* --- clientes (lote) ------------------------------------------------------------ */
+/* clientes (lote) */
 
 #tb-lote tr.rodando, #tb-lote tr.rodando td { background: var(--destaque-suave); }
 #tb-lote td.contrato { font-family: var(--mono); }
 #tb-lote td.cliente { font-weight: 500; order: -1; }
 #tb-lote td.situacao { margin-top: 4px; }
 
-/* --- diálogos, avisos e combobox ----------------------------------------------- */
+/* diálogos, avisos e combobox */
 
 dialog {
   width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 20px; border: 1px solid var(--linha); border-radius: 10px;
@@ -460,7 +423,7 @@ dialog form { display: flex; flex-direction: column; gap: 14px; }
 dialog h2 { font-size: 18px; }
 dialog .acoes-linha .btn { flex: 1 1 auto; }
 .toast {
-  position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50; width: auto; max-width: 460px;
+  position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 50; max-width: 460px;
   padding: 10px 14px; border-radius: var(--raio-p); background: var(--texto); color: var(--fundo);
   font-size: 13.5px; box-shadow: var(--sombra-flutuante);
 }
@@ -504,7 +467,7 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
 .driver-popover-close-btn:focus { outline: none; }
 .driver-popover-close-btn:focus-visible { outline: 2px solid var(--foco); outline-offset: -4px; }
 
-/* --- 640px: formulários em duas colunas, ações lado a lado ------------------------- */
+/* 640px: formulários em duas colunas, ações lado a lado */
 
 @media (min-width: 640px) {
   main { padding: 24px 24px 0; }
@@ -532,14 +495,13 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
   .grupo-cab input { flex: 1 1 auto; }
   .grupo-cab .btn { flex: none; }
   label.marcar { flex-wrap: nowrap; }
-  label.marcar small { flex-basis: auto; padding-left: 0; }
   .registro li { grid-template-columns: 8ch minmax(0, 1fr); gap: 12px; padding: 2px 0; }
   dialog { padding: 24px; }
   dialog .acoes-linha .btn { flex: none; }
   .toast { right: auto; bottom: 20px; }
 }
 
-/* --- 768px: tabelas como tabelas ----------------------------------------------- */
+/* 768px: tabelas como tabelas */
 
 @media (min-width: 768px) {
   .painel.tabela-painel { overflow-x: auto; }
@@ -554,10 +516,9 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
   #tb-mapeamento thead th.caixa::after { content: none; }
   .planilha td, .planilha td[data-th] {
     display: table-cell; padding: 9px 10px; font-size: 13.5px; font-weight: 400; color: inherit;
-    vertical-align: middle; border-bottom: 1px solid var(--linha);
+    vertical-align: middle; border-bottom: 1px solid var(--linha); overflow-wrap: break-word;
   }
   .planilha td[data-th]::before { content: none; }
-  .planilha td, .planilha td.caixa { overflow-wrap: break-word; }
   .planilha td.caixa { display: table-cell; align-self: auto; }
   .planilha tbody tr:last-child td { border-bottom: 0; }
   .planilha th.caixa, .planilha td.caixa, #tb-mapeamento thead th.caixa { width: 44px; padding: 0; text-align: center; }
@@ -572,7 +533,7 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
   #tb-lote td.situacao { min-width: 220px; margin: 0; }
 }
 
-/* --- 1024px: barra lateral ------------------------------------------------------- */
+/* 1024px: barra lateral */
 
 @media (min-width: 1024px) {
   .app { display: grid; grid-template-columns: 248px minmax(0, 1fr); }
@@ -591,17 +552,17 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
     content: ""; position: absolute; left: 19.5px; top: 31px; bottom: -7px; width: 1px; background: var(--linha-forte);
   }
   .lateral-rodape { flex-direction: column; align-items: stretch; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--linha); }
-  label.link-lateral, .link-lateral { justify-content: flex-start; width: 100%; min-height: 0; padding: 7px 8px; }
+  .link-lateral { justify-content: flex-start; width: 100%; min-height: 0; padding: 7px 8px; }
   .link-lateral .rotulo { display: inline; }
   .menu { left: 0; right: auto; top: auto; bottom: calc(100% + 6px); }
   main { padding: 32px 40px 0; }
-  .rodape-etapas { position: sticky; bottom: 0; z-index: 5; }   /* no celular fica no fim da página, sem cobrir conteúdo */
+  .rodape-etapas { position: sticky; bottom: 0; z-index: 5; }   /* no celular fica no fim da página */
   .cab h1 { font-size: 24px; }
   .grade-padroes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .toast { left: 264px; }
 }
 
-/* --- 1200px: planos de internet e de TV lado a lado --------------------------------- */
+/* 1200px: planos de internet e de TV lado a lado */
 
 @media (min-width: 1200px) {
   .mapeamento { grid-template-columns: minmax(0, 1.2fr) minmax(360px, 1fr); }
@@ -616,9 +577,7 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
   input[type="checkbox"] { width: 20px; height: 20px; }
 }
 
-/* --- dicas e ícone de informação ---------------------------------------------------
-   Explicações saem da tela e ficam no ⓘ ou ao passar o mouse sobre botões. */
-
+/* dicas e ícone de informação */
 .info {
   display: inline-grid; place-items: center; width: 22px; height: 22px; margin: -3px 0 -3px 2px; padding: 0;
   border: 0; border-radius: 50%; background: none; color: var(--texto-3); cursor: pointer; vertical-align: middle;
@@ -633,20 +592,18 @@ input.combo.fora-da-lista { border-color: var(--aviso); box-shadow: 0 0 0 3px va
   pointer-events: none; animation: dica-entra .14s ease-out;
 }
 @keyframes dica-entra { from { opacity: 0; transform: translateY(2px); } }
-@media (prefers-reduced-motion: reduce) { .dica { animation: none; } }
-:root[data-theme="dark"] .dica { background: rgba(58, 58, 52, .94); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dica { background: rgba(58, 58, 52, .94); } }
+@media (prefers-color-scheme: dark) { .dica { background: rgba(58, 58, 52, .94); } }
 
 .linha-info { display: flex; align-items: center; gap: 4px; }
 .linha-info .chave { flex: 0 1 auto; }
 .rotulo-com-info { display: inline-flex; align-items: center; gap: 2px; }
 .cab-desc .info, .painel-titulo .info, .titulo-secao .info { margin-left: 0; }
-.nota-aviso { display: flex; align-items: center; gap: 2px; }
-.nota-aviso .info { width: 18px; height: 18px; color: var(--aviso); }
-.nota-aviso .info .ic { width: 13px; height: 13px; }
+.nota-aviso .info { color: var(--aviso); }
+.mensagem-erro .info, .nota-aviso .info { width: 18px; height: 18px; }
+.mensagem-erro .info .ic, .nota-aviso .info .ic { width: 13px; height: 13px; }
 
-/* tom mais limpo: menos texto, mais respiro */
-.cab-desc { color: var(--texto-2); font-size: 14.5px; }
-.cab h1 { letter-spacing: -.02em; }
-.chave { padding: 4px 0; align-items: center; }
-.chave-trilho { margin-top: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .progresso div { transition: none; }
+  .btn.ocupado::before { animation-duration: 2s; }
+  .dica { animation: none; }
+}
