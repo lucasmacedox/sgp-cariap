@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101010">
+<title>Assistente SGP Cariap</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23101010'/%3E%3Cpath d='M16 6 27 25H5z' fill='%23ff5f00' stroke='%23ff5f00' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='16' cy='19' r='3.4' fill='%23101010'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/vendor/driver.css">
+<link rel="stylesheet" href="/app.css">
+</head>
+<body>
+<svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-mais" viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></symbol>
+  <symbol id="i-copiar" viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V4a1.5 1.5 0 0 0-1.5-1.5H4A1.5 1.5 0 0 0 2.5 4v5A1.5 1.5 0 0 0 4 10.5h1.5"/></symbol>
+  <symbol id="i-remover" viewBox="0 0 16 16"><path d="M4 4l8 8M12 4l-8 8"/></symbol>
+  <symbol id="i-lixeira" viewBox="0 0 16 16"><path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.5 4.5l.6 8.5h5.8l.6-8.5"/></symbol>
+  <symbol id="i-importar" viewBox="0 0 16 16"><path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v2.5h10V11"/></symbol>
+  <symbol id="i-exportar" viewBox="0 0 16 16"><path d="M8 9.5v-7M5 5.5l3-3 3 3M3 11v2.5h10V11"/></symbol>
+  <symbol id="i-planilha" viewBox="0 0 16 16"><rect x="2.5" y="2.5" width="11" height="11" rx="1.5"/><path d="M2.5 6.5h11M2.5 10h11M6.5 6.5v7"/></symbol>
+  <symbol id="i-exemplo" viewBox="0 0 16 16"><path d="M4 2.5h5.5l2.5 2.5v8.5H4z"/><path d="M9.5 2.5V5H12M6 8h4M6 10.5h4"/></symbol>
+  <symbol id="i-ajuda" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.5"/><path d="M6.4 6.4a1.7 1.7 0 0 1 3.2.6c0 1.2-1.6 1.3-1.6 2.4"/><circle cx="8" cy="11.3" r=".4" fill="currentColor"/></symbol>
+  <symbol id="i-ok" viewBox="0 0 16 16"><path d="M3.5 8.5l3 3 6-7"/></symbol>
+  <symbol id="i-voltar" viewBox="0 0 16 16"><path d="M10 3.5L5.5 8l4.5 4.5"/></symbol>
+  <symbol id="i-avancar" viewBox="0 0 16 16"><path d="M6 3.5L10.5 8 6 12.5"/></symbol>
+  <symbol id="i-reler" viewBox="0 0 16 16"><path d="M12.5 7.5A4.5 4.5 0 1 1 11 4.2M12.5 2.5v3h-3"/></symbol>
+  <symbol id="i-gerar" viewBox="0 0 16 16"><path d="M8 2.5v3M8 10.5v3M2.5 8h3M10.5 8h3M4.2 4.2l1.6 1.6M10.2 10.2l1.6 1.6M11.8 4.2l-1.6 1.6M5.8 10.2l-1.6 1.6"/></symbol>
+  <symbol id="i-cadeado" viewBox="0 0 16 16"><rect x="3.5" y="7" width="9" height="6.5" rx="1.5"/><path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2"/></symbol>
+  <symbol id="i-circulo" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/></symbol>
+  <symbol id="i-info" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><path d="M8 7.2v3.6"/><circle cx="8" cy="5.2" r=".5" fill="currentColor"/></symbol>
+  <symbol id="i-mais-opcoes" viewBox="0 0 16 16"><circle cx="4" cy="8" r=".9" fill="currentColor"/><circle cx="8" cy="8" r=".9" fill="currentColor"/><circle cx="12" cy="8" r=".9" fill="currentColor"/></symbol>
+</svg>
+
+<div class="app">
+  <aside class="lateral">
+    <div class="marca">
+      <svg class="marca-simbolo" viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="g-marca" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stop-color="#ff4f00"/><stop offset="1" stop-color="#fe8a00"/></linearGradient></defs><path d="M16 3.5 30 28.5H2z" fill="url(#g-marca)" stroke="url(#g-marca)" stroke-width="2" stroke-linejoin="round"/><circle cx="16" cy="20" r="4.2" fill="#101010"/></svg>
+      <div class="marca-texto"><strong>Assistente SGP</strong><span>Cariap</span></div>
+    </div>
+
+    <div id="provedor-box" class="provedor">
+      <label for="sel-provedor">Provedor</label>
+      <div class="provedor-linha">
+        <select id="sel-provedor"></select>
+        <button id="btn-novo-provedor" class="btn-icone" type="button" data-dica="Novo provedor" aria-label="Novo provedor"><svg class="ic"><use href="#i-mais"/></svg></button>
+      </div>
+      <p class="conexao-estado" data-estado="off"><span class="ponto" aria-hidden="true"></span><span id="pill-conexao">Desconectado</span></p>
+    </div>
+
+    <nav id="passos" class="passos" aria-label="Etapas">
+      <a href="#conexao" data-secao="conexao"><b>1</b><span>Conexão</span><i data-cont="conexao"></i></a>
+      <a href="#mapeamento" data-secao="mapeamento"><b>2</b><span>Serviços</span><i data-cont="mapeamento"></i></a>
+      <a href="#lote" data-secao="lote"><b>3</b><span>Clientes</span><i data-cont="lote"></i></a>
+    </nav>
+
+    <div class="lateral-rodape">
+      <label id="btn-importar" class="link-lateral" data-dica="Abrir configuração (.json)"><svg class="ic"><use href="#i-importar"/></svg><span class="rotulo">Importar</span><input type="file" accept=".json,application/json" hidden></label>
+      <button id="btn-exportar" class="link-lateral" type="button" data-dica="Salvar configuração (.json), sem a senha" aria-label="Exportar"><svg class="ic"><use href="#i-exportar"/></svg><span class="rotulo">Exportar</span></button>
+      <div class="ajuda">
+        <button id="btn-ajuda" class="link-lateral" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Ajuda"><svg class="ic"><use href="#i-ajuda"/></svg><span class="rotulo">Ajuda</span></button>
+        <div id="menu-ajuda" class="menu" role="menu" hidden>
+          <button type="button" role="menuitem" data-tour="secao">Explicar esta tela</button>
+          <button type="button" role="menuitem" data-tour="completo">Tour completo</button>
+          <hr>
+          <button type="button" role="menuitem" data-tour="renomear">Renomear provedor</button>
+          <button type="button" role="menuitem" data-tour="excluir">Excluir provedor</button>
+          <button type="button" role="menuitem" data-tour="limpar">Limpar configuração</button>
+          <span id="versao" class="menu-rodape"></span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- 1. Conexão -->
+    <section id="sec-conexao" data-secao="conexao">
+      <header class="cab">
+        <div>
+          <h1>Conexão</h1>
+          <p class="cab-desc">Entre no SGP do provedor. <button class="info" type="button" data-dica="Use um usuário só para a automação. Endereço e usuário ficam salvos no perfil; a senha, só na memória do assistente." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></p>
+        </div>
+        <button class="btn-icone" type="button" data-explicar="conexao" data-dica="Como funciona" aria-label="Como funciona"><svg class="ic"><use href="#i-ajuda"/></svg></button>
+      </header>
+
+      <form id="form-conexao" class="painel form-grade" autocomplete="off">
+        <label class="larga">Endereço do SGP<input id="cx-url" name="url" type="url" placeholder="https://sgp.provedor.com.br" required></label>
+        <label>Usuário<input id="cx-usuario" name="usuario" required></label>
+        <label>Senha<input id="cx-senha" name="senha" type="password" required></label>
+        <div class="larga linha-info">
+          <label class="marcar"><input id="cx-ssl" type="checkbox"> Aceitar certificado não verificado</label>
+          <button class="info" type="button" data-dica="Só para SGP interno com certificado próprio." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button>
+        </div>
+        <div class="larga acoes-linha">
+          <button id="btn-conectar" class="btn primario" type="submit">Conectar</button>
+          <span id="cx-msg" class="msg" role="status"></span>
+        </div>
+      </form>
+
+      <div id="cx-resumo" class="painel" hidden>
+        <h2 class="painel-titulo">Planos no SGP</h2>
+        <dl class="numeros">
+          <div><dt>Internet</dt><dd data-r="planos_internet">-</dd></div>
+          <div><dt>Com clientes</dt><dd data-r="com_clientes">-</dd></div>
+          <div><dt>TV</dt><dd data-r="planos_servico">-</dd></div>
+        </dl>
+        <div class="acoes-linha">
+          <button class="btn primario" type="button" data-ir="mapeamento">Continuar<svg class="ic"><use href="#i-avancar"/></svg></button>
+          <button id="btn-recarregar" class="btn" type="button" data-dica="Ler os planos de novo"><svg class="ic"><use href="#i-reler"/></svg>Atualizar</button>
+          <button id="btn-desconectar" class="btn sutil" type="button">Desconectar</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. Serviços por plano -->
+    <section id="sec-mapeamento" data-secao="mapeamento" hidden>
+      <header class="cab">
+        <div>
+          <h1>Serviços</h1>
+          <p class="cab-desc">Selecione planos de internet e marque os serviços de TV. <button class="info" type="button" data-dica="Planos com os mesmos serviços formam um grupo automaticamente." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></p>
+        </div>
+        <button class="btn-icone" type="button" data-explicar="mapeamento" data-dica="Como funciona" aria-label="Como funciona"><svg class="ic"><use href="#i-ajuda"/></svg></button>
+      </header>
+      <p class="vazio painel" id="mp-vazio">Conecte ao SGP para ver os planos.</p>
+      <p id="mp-problemas" class="painel aviso" hidden></p>
+
+      <div id="mp-conteudo" class="mapeamento" hidden>
+        <div class="painel tabela-painel mp-planos">
+          <div class="mp-topo">
+          <div class="barra-tabela">
+            <input id="mp-filtro" type="search" placeholder="Buscar planos" aria-label="Buscar planos de internet">
+            <label class="marcar"><input id="mp-com-clientes" type="checkbox" checked> Com clientes</label>
+            <label class="marcar"><input id="mp-sem-grupo" type="checkbox"> Sem serviços</label>
+          </div>
+          <div id="mp-selecao" class="barra-selecao" hidden>
+            <span id="mp-selecao-texto"></span>
+            <span class="espaco"></span>
+            <select id="mp-mover" aria-label="Copiar serviços de um grupo"></select>
+            <button id="mp-tirar" class="btn sutil pequeno" type="button" data-dica="Tirar todos os serviços dos planos selecionados">Remover serviços</button>
+            <button id="mp-limpar" class="btn sutil pequeno" type="button">Limpar</button>
+          </div>
+          </div>
+          <table id="tb-mapeamento" class="planilha leitura selecionavel">
+            <thead><tr><th class="caixa" data-movel="Selecionar todos"><input type="checkbox" id="mp-todos" aria-label="Selecionar todos os visíveis"></th><th>Plano de internet</th><th class="num">Preço</th><th class="num">Ativos</th><th>Serviços</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="mp-lado">
+          <div id="mp-servicos" class="painel tabela-painel">
+            <div class="mp-servicos-cab">
+              <h2 class="painel-titulo">Serviços de TV <button class="info" type="button" data-dica="Planos de TV cadastrados no SGP, como os livros do Cariap. Uma caixa com traço indica que só parte dos planos selecionados tem o serviço." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></h2>
+              <p id="mp-alvo" class="nota"></p>
+            </div>
+            <div class="barra-tabela">
+              <input id="mp-filtro-servicos" type="search" placeholder="Buscar serviços" aria-label="Buscar planos de TV">
+              <label class="marcar"><input id="mp-so-cariap" type="checkbox"> Só Cariap</label>
+            </div>
+            <div class="tabela-rolagem">
+              <table id="tb-servicos" class="planilha leitura selecionavel">
+                <thead><tr><th class="caixa"><span class="sr">Vincular</span></th><th>Serviço</th><th>Gateway</th><th class="num">Ativos</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h2 class="titulo-secao">Grupos <button class="info" type="button" data-dica="Renomeie à vontade. Serviços adicionados ou removidos num grupo valem para todos os planos dele." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></h2>
+            <div id="lista-grupos" class="lista"></div>
+            <p class="vazio painel" data-vazio="grupos">Nenhum grupo ainda.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. Clientes -->
+    <section id="sec-lote" data-secao="lote" hidden>
+      <header class="cab">
+        <div>
+          <h1>Clientes</h1>
+          <p class="cab-desc">Adicione os serviços que faltam nos contratos. <button class="info" type="button" data-dica="Cada serviço entra no contrato que já existe, na mesma fatura da internet. Contratos completos são pulados." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></p>
+        </div>
+        <div class="cab-acoes">
+          <button id="btn-lote-buscar" class="btn" type="button"><svg class="ic"><use href="#i-reler"/></svg>Buscar</button>
+          <button id="btn-lote-iniciar" class="btn primario" type="button" disabled>Iniciar</button>
+          <button class="btn-icone" type="button" data-explicar="lote" data-dica="Como funciona" aria-label="Como funciona"><svg class="ic"><use href="#i-ajuda"/></svg></button>
+        </div>
+      </header>
+
+      <div class="grade-padroes">
+        <fieldset id="lt-filtros" class="painel">
+          <legend>Quem recebe</legend>
+          <div class="campo-filtro">
+            <p class="rotulo-campo">Planos</p>
+            <div class="etiquetas" data-lt-lista="planos"></div>
+            <input data-lt-add="planos" list="dl-lt-planos" placeholder="Todos os planos mapeados" aria-label="Restringir a um plano">
+          </div>
+          <div class="campo-filtro">
+            <p class="rotulo-campo">POPs</p>
+            <div class="etiquetas" data-lt-lista="pops"></div>
+            <input data-lt-add="pops" list="dl-lt-pops" placeholder="Todos os POPs" aria-label="Restringir a um POP">
+          </div>
+          <div class="campo-filtro">
+            <p class="rotulo-campo">Status do contrato</p>
+            <div id="lt-status" class="opcoes-livros"></div>
+          </div>
+        </fieldset>
+        <fieldset id="lt-execucao" class="painel">
+          <legend>Execução</legend>
+          <div class="linha-info">
+            <label class="chave"><input type="checkbox" role="switch" data-lt="ativar">
+              <span class="chave-trilho" aria-hidden="true"></span>
+              <span class="chave-texto"><b>Ativar após adicionar</b></span></label>
+            <button class="info" type="button" data-dica="A ativação cria o acesso do cliente no Cariap. Desligado, os serviços ficam inativos." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button>
+          </div>
+          <div class="linha-info">
+            <label class="chave"><input type="checkbox" role="switch" data-lt="validar_cadastro">
+              <span class="chave-trilho" aria-hidden="true"></span>
+              <span class="chave-texto"><b>Conferir cadastro</b></span></label>
+            <button class="info" type="button" data-dica="Na busca, confere CPF/CNPJ, e-mail e celular (com o 9) de cada cliente. Quem tiver pendência fica de fora até ser corrigido no SGP, para não falhar na ativação do Cariap." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button>
+          </div>
+          <div class="dupla">
+            <label>Pausa (segundos)<input data-lt="pausa_segundos" type="number" min="0" max="60" class="direita"></label>
+            <label><span class="rotulo-com-info">Limite <button class="info" type="button" data-dica="Comece com poucos contratos, por exemplo 5, e confira no SGP e no Cariap antes de rodar a base toda." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button></span><input data-lt="limite" type="number" min="1" class="direita" placeholder="Sem limite"></label>
+          </div>
+        </fieldset>
+      </div>
+
+      <p id="lt-msg" class="msg" role="status"></p>
+      <dl id="lt-resumo" class="numeros painel" hidden>
+        <div><dt>Selecionados</dt><dd data-lt-n="selecionados">0</dd></div>
+        <div><dt>Pendentes</dt><dd data-lt-n="pendente">0</dd></div>
+        <div><dt>Completos</dt><dd data-lt-n="completo">0</dd></div>
+        <div><dt>Revisar</dt><dd data-lt-n="bloqueado">0</dd></div>
+        <div><dt>Concluídos</dt><dd data-lt-n="concluido">0</dd></div>
+        <div><dt>Erros</dt><dd data-lt-n="erro">0</dd></div>
+      </dl>
+      <div id="lt-andamento" class="painel andamento" hidden>
+        <div class="andamento-topo">
+          <p><strong id="lt-pct">0%</strong> <span id="lt-contagem" class="nota"></span></p>
+          <p class="nota andamento-tempo"><span id="lt-decorrido">0:00</span><span id="lt-restante"></span></p>
+        </div>
+        <div class="progresso" role="progressbar" aria-label="Andamento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <div class="feito"></div><div class="falhou"></div>
+        </div>
+        <p id="lt-atual" class="andamento-atual"></p>
+        <div class="acoes-linha">
+          <span class="contadores"><span class="estado ok" id="lt-n-ok">0</span><span class="estado erro" id="lt-n-erro">0</span></span>
+          <span class="espaco"></span>
+          <button id="btn-lote-pausar" class="btn pequeno" type="button">Pausar</button>
+          <button id="btn-lote-parar" class="btn sutil pequeno" type="button" data-dica="Termina o contrato atual e para">Parar</button>
+        </div>
+      </div>
+      <div id="lt-falhas" class="painel falhas" hidden>
+        <div class="falhas-cab">
+          <h2 class="painel-titulo">Falhas</h2>
+          <button id="btn-lote-retentar" class="btn pequeno" type="button" data-dica="Busca de novo e seleciona só os contratos que falharam">Tentar de novo</button>
+        </div>
+        <ul id="lt-falhas-lista" class="falhas-lista"></ul>
+      </div>
+      <div id="lt-cadastros" class="painel falhas cadastros" hidden>
+        <div class="falhas-cab">
+          <h2 class="painel-titulo">Cadastros a revisar</h2>
+          <button class="info" type="button" data-dica="Corrija no SGP (cliente → Contatos ou Cadastro) e clique em Buscar de novo. Avisos não impedem a aplicação." aria-label="Mais informações"><svg class="ic"><use href="#i-info"/></svg></button>
+        </div>
+        <ul id="lt-cadastros-lista" class="falhas-lista"></ul>
+      </div>
+      <div class="painel tabela-painel" id="lt-tabela-wrap" hidden>
+        <div class="barra-tabela">
+          <input id="lt-filtro" type="search" placeholder="Buscar cliente, contrato ou plano" aria-label="Buscar clientes">
+          <select id="lt-ver" aria-label="Mostrar"><option value="">Todos</option><option value="pendente">Pendentes</option><option value="completo">Completos</option><option value="bloqueado">Revisar cadastro</option><option value="erro">Com erro</option><option value="concluido">Concluídos</option></select>
+          <span class="espaco"></span>
+          <button id="lt-marcar" class="btn pequeno" type="button">Marcar pendentes</button>
+          <button id="lt-desmarcar" class="btn sutil pequeno" type="button">Desmarcar</button>
+          <button id="lt-csv" class="btn-icone" type="button" data-dica="Baixar relatório (.csv)" aria-label="Baixar relatório"><svg class="ic"><use href="#i-importar"/></svg></button>
+        </div>
+        <table id="tb-lote" class="planilha leitura">
+          <thead><tr><th class="caixa"><span class="sr">Incluir</span></th><th>Contrato</th><th>Cliente</th><th>Plano</th><th>Falta</th><th>Situação</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <details id="lt-log-wrap" class="painel" hidden><summary>Registro</summary><ol id="lt-log" class="registro"></ol></details>
+    </section>
+
+    <footer class="rodape-etapas">
+      <button id="btn-anterior" class="btn sutil" type="button"><svg class="ic"><use href="#i-voltar"/></svg><span></span></button>
+      <button id="btn-proximo" class="btn" type="button"><span></span><svg class="ic"><use href="#i-avancar"/></svg></button>
+    </footer>
+  </main>
+</div>
+
+<!-- Confirmação do lote -->
+<dialog id="dlg-lote">
+  <form method="dialog">
+    <h2>Iniciar cadastro?</h2>
+    <p id="lote-conf-texto"></p>
+    <label>Digite <b>INICIAR</b> para confirmar<input id="lote-conf-palavra" autocomplete="off" class="mono"></label>
+    <div class="acoes-linha fim">
+      <button class="btn sutil" value="cancelar">Cancelar</button>
+      <button class="btn primario" value="ok" id="lote-conf-ok" disabled>Iniciar</button>
+    </div>
+  </form>
+</dialog>
+
+<datalist id="dl-servicos"></datalist>
+<datalist id="dl-lt-planos"></datalist>
+<datalist id="dl-lt-pops"></datalist>
+
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="/vendor/driver.js.iife.js"></script>
+<script type="module" src="/js/main.js"></script>
+</body>
+</html>

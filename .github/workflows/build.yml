@@ -1,0 +1,89 @@
+# Qualidade (ruff, mypy) e testes em Windows, macOS e Linux a cada push e pull request.
+# Executáveis (Windows, macOS Apple Silicon e Intel, Linux) a cada tag "v*",
+# publicados num Release com SHA256SUMS.txt, ou manualmente em Actions → build → Run workflow.
+#
+# As ações de terceiros ficam fixadas pelo commit (não pela tag, que pode ser movida);
+# o comentário ao lado diz a versão. Para atualizar: git ls-remote https://github.com/<ação> refs/tags/<versão>
+name: build
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualidade:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: '3.12'
+      - run: pip install ".[dev]"
+      - run: ruff check sgpcariap tests
+      - run: mypy sgpcariap
+      - run: coverage run -m unittest discover -s tests -t .
+      - run: coverage report --include='sgpcariap/*' --fail-under=85
+
+  testes:
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, windows-latest, macos-latest]
+        python: ['3.10', '3.12']
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m unittest discover -s tests -t . -v
+
+  build:
+    needs: [qualidade, testes]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, macos-13, ubuntu-22.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements-build.txt
+      - run: python build.py
+      - name: teste rápido do executável
+        shell: bash
+        run: |
+          exe=$(ls dist/SGP-Cariap-*)
+          "$exe" --sem-navegador --porta 8799 &
+          sleep 8
+          curl -sf http://127.0.0.1:8799/api/status
+          curl -sf -o /dev/null http://127.0.0.1:8799/
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: SGP-Cariap-${{ matrix.os }}
+          path: dist/SGP-Cariap-*
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        with:
+          path: dist
+          merge-multiple: true
+      - name: somas de verificação
+        run: cd dist && sha256sum SGP-Cariap-* > SHA256SUMS.txt && cat SHA256SUMS.txt
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65  # v2.6.2
+        with:
+          files: dist/*

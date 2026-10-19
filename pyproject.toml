@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sgpcariap"
+dynamic = ["version"]
+description = "Assistente de configuração do SGP para o Cariap: produtos, planos, kits e detalhamento de plano."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+executavel = ["pyinstaller>=6.6", "certifi"]
+dev = ["ruff>=0.6", "mypy>=1.10", "coverage>=7"]
+
+[project.scripts]
+sgp-cariap = "sgpcariap.__main__:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "sgpcariap.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["sgpcariap*"]
+
+[tool.setuptools.package-data]
+sgpcariap = ["static/*", "static/**/*"]
+
+[tool.ruff]
+line-length = 130
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "UP", "SIM", "BLE"]
+ignore = [
+    "SIM105",  # try/except/pass explícito é mais legível que contextlib.suppress aqui
+    "SIM108",  # if/else em vez de ternário longo
+    "B905",    # zip sem strict: cabeçalho e células de tabela podem ter tamanhos diferentes de propósito
+]
+
+[tool.mypy]
+python_version = "3.10"
+ignore_missing_imports = true
+warn_unused_ignores = true
+check_untyped_defs = true

@@ -1,0 +1,139 @@
+{
+ "versao": 1,
+ "provedor": "Exemplo",
+ "padroes": {
+  "prefixo": "ZZ-ROBO-PORTO",
+  "pops": "todos",
+  "grupo_tv": "TV",
+  "autobloqueio": true,
+  "dias_bloqueio": 15,
+  "dias_aviso": 10,
+  "produto_scm": "",
+  "tipodoc": "NFCom 62",
+  "unidade": "UN"
+ },
+ "alvos": [],
+ "produtos": [
+  {
+   "codigo": "FW",
+   "descricao": "Segurança e Proteção de Rede (Firewall + Anti-DDoS)",
+   "valor": 19,
+   "tipo": "SVA",
+   "grupofiscal": "SVA",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "DNS",
+   "descricao": "Serviço de DNS",
+   "valor": 25,
+   "tipo": "SVA",
+   "grupofiscal": "SVA",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "PPPOE",
+   "descricao": "PPPoE, VLAN",
+   "valor": 38,
+   "tipo": "SVA",
+   "grupofiscal": "SVA",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "EBESS",
+   "descricao": "E-book Super Essencial",
+   "valor": 20,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-EBESS",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "ABPESS",
+   "descricao": "Audiobook Super Play Essencial",
+   "valor": 20,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-ABPESS",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "ABTRI",
+   "descricao": "Audiobook Super Triplo",
+   "valor": 30,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-ABTRI",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "EBTRI",
+   "descricao": "E-book Super Triplo",
+   "valor": 53,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-EBTRI",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "ABDUO",
+   "descricao": "Audiobook Super Duo",
+   "valor": 57,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-ABDUO",
+   "oferecer": true,
+   "servico_sgp": ""
+  },
+  {
+   "codigo": "EBDUO",
+   "descricao": "E-book Super Duo",
+   "valor": 65,
+   "tipo": "SVA",
+   "grupofiscal": "LIVRO",
+   "tipodoc": "",
+   "unidade": "",
+   "cariap": "CARIAP-EBDUO",
+   "oferecer": true,
+   "servico_sgp": ""
+  }
+ ],
+ "regras": {
+  "scm_alvo": 20,
+  "scm_minimo": 15,
+  "max_itens": 4,
+  "exigir_livro": true
+ },
+ "composicoes": [],
+ "kits": [],
+ "contrato": {
+  "modo": "existente",
+  "nome": "",
+  "termo_adesao": ""
+ }
+}
